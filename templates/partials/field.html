@@ -1,0 +1,9 @@
+{# Reusable form field with a label, help text and an inline error slot. #}
+<div class="field">
+  <label class="field__label" for="{{ field.id_for_label }}">
+    {{ field.label }}{% if field.field.required %} <span class="req" aria-hidden="true">*</span>{% endif %}
+  </label>
+  {{ field }}
+  {% if field.help_text %}<span class="field__help">{{ field.help_text }}</span>{% endif %}
+  <span class="field__error" {% if field.errors %}role="alert"{% endif %}>{{ field.errors|join:" " }}</span>
+</div>

@@ -1,0 +1,142 @@
+/* Teacher attendance dashboard. Uses only the tokens from base.css. */
+
+.daypick { display: flex; gap: var(--s-2); align-items: center; }
+.daypick .field__input { width: auto; }
+
+/* ---------- drag-and-drop upload ---------- */
+.dropzone {
+  position: relative;
+  border: 1.5px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+  background: var(--c-surface-alt);
+  padding: var(--s-6) var(--s-4);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .12s ease, background-color .12s ease;
+}
+.dropzone:hover { border-color: var(--c-accent); background: var(--c-accent-soft); }
+.dropzone.is-dragging {
+  border-color: var(--c-accent);
+  background: var(--c-accent-soft);
+  border-style: solid;
+}
+.dropzone__title { margin: 0 0 var(--s-1); font-weight: 600; color: var(--c-ink-80); max-width: none; }
+.dropzone__hint { margin: 0; font-size: var(--fs-xs); color: var(--c-ink-60); max-width: none; }
+/* The real input stays in the DOM (so the form posts it) but is not seen. */
+.dropzone input[type="file"] {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer;
+}
+
+.thumbs {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s-3);
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+.thumbs:empty { display: none; }
+.thumbs li {
+  position: relative;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--c-surface-alt);
+}
+.thumbs img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.thumbs__name {
+  display: block; padding: var(--s-1) var(--s-2);
+  font-size: var(--fs-xs); color: var(--c-ink-60);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.thumbs__remove {
+  position: absolute; top: var(--s-1); right: var(--s-1);
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 0; cursor: pointer;
+  background: rgba(28, 28, 26, .72); color: #fff;
+  font-size: var(--fs-sm); line-height: 1;
+  display: grid; place-items: center;
+}
+.thumbs__remove:hover { background: var(--c-absent); }
+
+/* ---------- the day's uploads ---------- */
+.session-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+.session-item {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  background: var(--c-surface-alt);
+}
+.session-item__head {
+  display: flex; align-items: center; gap: var(--s-2);
+  flex-wrap: wrap; margin-bottom: var(--s-3);
+}
+.session-item__foot { margin-top: var(--s-3); }
+
+.shots {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s-2);
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+.shot { position: relative; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--c-border); }
+.shot img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.shot__badge {
+  position: absolute; left: var(--s-1); top: var(--s-1);
+  background: rgba(28, 28, 26, .72); color: #fff;
+  border-radius: var(--r-sm); padding: 0 var(--s-1);
+  font-size: var(--fs-xs); font-weight: 650;
+}
+
+/* ---------- timetable ---------- */
+.slot-list { list-style: none; margin: 0; padding: 0; }
+.slot {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.slot:last-child { border-bottom: 0; }
+.slot--done { background: var(--c-surface-alt); }
+.slot__period {
+  flex: none; width: 30px; height: 30px; border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  background: var(--c-accent-soft); color: var(--c-accent-dark);
+  font-weight: 650; font-size: var(--fs-sm);
+}
+.slot__text { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.slot__state { flex: none; margin-left: auto; }
+
+@media (max-width: 700px) {
+  .page-head { flex-direction: column; align-items: stretch; }
+  .daypick .field__input { flex: 1; }
+}
+
+/* ---------- session detail ---------- */
+.shot--detail { display: grid; }
+.shot__meta {
+  display: grid; gap: 1px;
+  padding: var(--s-2);
+  background: var(--c-surface-alt);
+  border-top: 1px solid var(--c-border);
+}
+.problem-card { border-color: var(--c-pending); }
+.problem-card h2 { color: var(--c-pending); }
+
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.chips li {
+  background: var(--c-surface-alt);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--fs-sm);
+}
+.chips .mono { color: var(--c-ink-60); margin-right: var(--s-1); }
+
+/* ---------- manual corrections ---------- */
+.assign { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.assign .field__select { padding: var(--s-1) var(--s-2); font-size: 0.8125rem; }
+
+.confirm-card { border-color: var(--c-accent); }
+.confirm-card h2 { margin-top: 0; }
+
+.dropzone__icon { display: grid; place-items: center; width: 44px; height: 44px; background: var(--c-accent-soft); color: var(--c-accent); border-radius: var(--r-md); margin: 0 auto var(--s-3); }
+.dropzone:focus-within { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+.slot { padding-top: var(--s-4); padding-bottom: var(--s-4); }
+.slot__period { width: 36px; height: 36px; border-radius: var(--r-md); }

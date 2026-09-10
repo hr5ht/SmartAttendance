@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Take attendance · {{ institution_name }}{% endblock %}
+
+{% block content %}
+{% if not teacher %}
+  <div class="card"><div class="card__body">
+    {% include "partials/empty.html" with icon="!" title="No teacher profile" body="Your account has the teacher role but no teacher record. Ask an administrator to create one and assign your sections." %}
+  </div></div>
+{% else %}
+
+<div class="page-head">
+  <div class="page-head__text">
+    <span class="eyebrow">YOUR DAILY WORKSPACE</span>
+    <h1>Take attendance</h1>
+    <p class="page-head__sub">
+      {{ day|date:"l, d F Y" }}{% if is_today %} · today{% endif %}
+    </p>
+  </div>
+  <form class="page-head__actions daypick" method="get" action="{% url 'attendance:dashboard' %}">
+    <label class="visually-hidden" for="daypick">Show a different day</label>
+    <input class="field__input" type="date" id="daypick" name="date" value="{{ day|date:'Y-m-d' }}">
+    <button class="btn btn--secondary" type="submit">Show day</button>
+  </form>
+</div>
+
+<ol class="workflow" aria-label="Attendance workflow"><li class="workflow__current"><span>01</span><div><strong>Create a draft</strong><small>Add class details and photos</small></div></li><li><span>02</span><div><strong>Review matches</strong><small>Check and correct attendance</small></div></li><li><span>03</span><div><strong>Confirm session</strong><small>Save the final attendance record</small></div></li></ol>
+<div class="grid grid--sidebar">
+  <div class="stack-5">
+
+    {# ---------------- details + photo upload ---------------- #}
+    <div class="card">
+      <div class="card__head">
+        <h2>Class details</h2>
+        <span class="card__title-note push-right">{% if restricted %}Only the classes you're assigned to{% else %}Any class in the institution{% endif %}</span>
+      </div>
+      <div class="card__body">
+        <form class="form" method="post" enctype="multipart/form-data" novalidate
+              data-session-form>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="form-errors" role="alert">
+              <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            </div>
+          {% endif %}
+
+          <div class="form__row form__row--3">
+            {% include "partials/field.html" with field=form.department %}
+            {% include "partials/field.html" with field=form.year %}
+            {% include "partials/field.html" with field=form.section %}
+          </div>
+          <div class="form__row form__row--3">
+            {% include "partials/field.html" with field=form.subject %}
+            {% include "partials/field.html" with field=form.period %}
+            {% include "partials/field.html" with field=form.date %}
+          </div>
+
+          {# ---- drag-and-drop photo upload ---- #}
+          <div class="field">
+            <span class="field__label" id="photos-label">
+              {{ form.images.label }} <span class="req" aria-hidden="true">*</span>
+            </span>
+            <div class="dropzone" data-dropzone tabindex="0" role="button"
+                 aria-labelledby="photos-label"
+                 aria-describedby="photos-help">
+              <span class="dropzone__icon">{% include "partials/icon.html" with name="upload" %}</span>
+              <p class="dropzone__title">Drag photos here, or click to choose</p>
+              <p class="dropzone__hint" id="photos-help">{{ form.images.help_text }}</p>
+              {{ form.images }}
+            </div>
+            <ul class="thumbs" data-thumbs></ul>
+            <span class="field__error" {% if form.images.errors %}role="alert"{% endif %}>{{ form.images.errors|join:" " }}</span>
+          </div>
+
+          <div class="row">
+            <button class="btn btn--primary" type="submit" data-submit>Upload &amp; create draft</button>
+            <span class="loading-panel" data-uploading hidden>
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Uploading photos…</span>
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ---------------- the day's uploads ---------------- #}
+    <div class="card">
+      <div class="card__head">
+        <h2>Uploads on this day</h2>
+        <span class="card__title-note push-right">{{ sessions|length }} session{{ sessions|length|pluralize }}</span>
+      </div>
+      <div class="card__body {% if not sessions %}card__body--flush{% endif %}">
+        {% if sessions %}
+          <ul class="session-list">
+            {% for session in sessions %}
+              <li class="session-item">
+                <div class="session-item__head">
+                  <span class="pill pill--accent">Period {{ session.period }}</span>
+                  <span class="strong">{{ session.section.name }}</span>
+                  <span class="muted small">{{ session.subject.name }}</span>
+                  {% if session.is_confirmed %}
+                    <span class="pill pill--present push-right"><span class="pill__icon" aria-hidden="true">✓</span>Confirmed</span>
+                  {% else %}
+                    <span class="pill pill--pending push-right"><span class="pill__icon" aria-hidden="true">●</span>Draft</span>
+                  {% endif %}
+                </div>
+
+                <ul class="shots">
+                  {% for image in session.images.all %}
+                    <li class="shot">
+                      <img src="{{ image.image.url }}" alt="Classroom photo {{ forloop.counter }} for period {{ session.period }}" loading="lazy">
+                      <span class="shot__badge">{{ forloop.counter }}</span>
+                    </li>
+                  {% empty %}
+                    <li class="muted small">No photos attached.</li>
+                  {% endfor %}
+                </ul>
+
+                <div class="row-tight session-item__foot">
+                  <span class="xsmall dim">
+                    {{ session.images.all|length }} photo{{ session.images.all|length|pluralize }} ·
+                    created {{ session.created_at|time:"H:i" }}
+                    {% if session.last_processed_at %}· processed{% else %}· not processed yet{% endif %}
+                  </span>
+                  <a class="btn btn--secondary btn--sm" href="{% url 'attendance:session_detail' session.pk %}">
+                    Open results
+                  </a>
+                  {% if session.is_draft %}
+                    <form class="row-tight push-right" method="post"
+                          action="{% url 'attendance:add_images' session.pk %}"
+                          enctype="multipart/form-data">
+                      {% csrf_token %}
+                      <label class="btn btn--secondary btn--sm" for="more-{{ session.pk }}">Add photos</label>
+                      <input class="visually-hidden" type="file" id="more-{{ session.pk }}"
+                             name="images" accept="image/*" multiple data-autosubmit>
+                    </form>
+                    <form method="post" action="{% url 'attendance:delete_session' session.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn--danger btn--sm" type="submit"
+                              data-confirm="Discard this draft and its photos? Nothing has been recorded yet."
+                              data-confirm-label="Discard draft">Discard</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          {% include "partials/empty.html" with icon="◷" title="Nothing uploaded for this day" body="Fill in the class details above and attach the classroom photos to start a draft." %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ---------------- timetable for the day ---------------- #}
+  <aside>
+    <div class="card">
+      <div class="card__head">
+        <h3>Your timetable</h3>
+        <span class="card__title-note push-right">{{ day|date:"l" }}</span>
+      </div>
+      <div class="card__body card__body--flush">
+        {% if slots %}
+          <ul class="slot-list">
+            {% for slot in slots %}
+              <li class="slot {% if slot.session %}slot--done{% endif %}">
+                <span class="slot__period" aria-hidden="true">{{ slot.period }}</span>
+                <div class="slot__text">
+                  <span class="strong">{{ slot.section.name }}</span>
+                  <span class="muted small">{{ slot.subject.name }}</span>
+                  <span class="xsmall dim">{{ slot.start_time|time:"H:i" }}–{{ slot.end_time|time:"H:i" }}</span>
+                </div>
+                <div class="slot__state">
+                  {% if slot.session %}
+                    {% if slot.session.is_confirmed %}
+                      <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Done</span>
+                    {% else %}
+                      <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Draft</span>
+                    {% endif %}
+                  {% else %}
+                    <button class="btn btn--secondary btn--sm" type="button"
+                            data-prefill
+                            data-department="{{ slot.section.department_id }}"
+                            data-year="{{ slot.section.year }}"
+                            data-section="{{ slot.section_id }}"
+                            data-subject="{{ slot.subject_id }}"
+                            data-period="{{ slot.period }}">Use</button>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty">
+            <div class="empty__icon" aria-hidden="true">◷</div>
+            <h3>No classes scheduled</h3>
+            <p>You have no timetable slots on {{ day|date:"l" }}. You can still take
+               attendance for any class you're assigned to.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+</div>
+
+{{ assignment_map|json_script:"assignment-map" }}
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/attendance.css' %}">{% endblock %}
+{% block extra_js %}<script src="{% static 'js/session-form.js' %}" defer></script>{% endblock %}

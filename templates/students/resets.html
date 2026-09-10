@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Reset requests · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>Reset requests &amp; flags</h1>
+    <p class="page-head__sub">Approving a reset deletes that student's stored face samples.</p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--secondary" href="{% url 'students:list' %}">Back to students</a>
+  </div>
+</div>
+
+{% if flagged %}
+  <div class="card" style="border-color: var(--c-absent); margin-bottom: var(--s-5)">
+    <div class="card__head">
+      <h2 style="color: var(--c-absent)">Flagged enrolments</h2>
+      <span class="card__title-note push-right">A capture matched a different student</span>
+    </div>
+    <div class="card__body card__body--flush">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th scope="col">Roll no</th><th scope="col">Name</th><th scope="col">Section</th><th scope="col">Why</th><th scope="col"></th></tr>
+          </thead>
+          <tbody>
+            {% for student in flagged %}
+              <tr>
+                <th scope="row" class="mono">{{ student.roll_no }}</th>
+                <td>{{ student.name }}</td>
+                <td class="muted">{{ student.section.name }}</td>
+                <td class="xsmall muted" style="white-space: pre-line">{{ student.flag_reason }}</td>
+                <td class="num">
+                  <div class="row-tight">
+                    <a class="btn btn--ghost btn--sm" href="{% url 'students:detail' student.pk %}">Open</a>
+                    <form method="post" action="{% url 'students:clear_flag' student.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn--secondary btn--sm" type="submit">Clear</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <div class="card__head"><h2>Reset requests</h2></div>
+  <div class="card__body card__body--flush">
+    {% if requests %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Requested</th><th scope="col">Student</th>
+              <th scope="col">Reason</th><th scope="col">Status</th><th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for reset in requests %}
+              <tr>
+                <td class="nowrap">{{ reset.created_at|date:"d M Y" }}</td>
+                <td>
+                  <span class="mono">{{ reset.student.roll_no }}</span>
+                  <span class="strong">{{ reset.student.name }}</span>
+                  <span class="muted small">{{ reset.student.section.name }}</span>
+                </td>
+                <td class="small muted">{{ reset.reason|default:"—" }}</td>
+                <td>
+                  {% if reset.status == 'PENDING' %}
+                    <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Pending</span>
+                  {% elif reset.status == 'APPROVED' %}
+                    <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Approved</span>
+                  {% else %}
+                    <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">✕</span>Rejected</span>
+                  {% endif %}
+                </td>
+                <td class="num">
+                  {% if reset.is_pending %}
+                    <form class="row-tight" method="post" action="{% url 'students:decide_reset' reset.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn--secondary btn--sm" type="submit" name="decision" value="reject">Reject</button>
+                      <button class="btn btn--primary btn--sm" type="submit" name="decision" value="approve"
+                              data-confirm="Approve the reset for {{ reset.student.name }}? Their {{ reset.student.enrollment_count }} stored face samples will be deleted and they'll have to redo face setup."
+                              data-confirm-label="Approve &amp; clear samples">Approve</button>
+                    </form>
+                  {% else %}
+                    <span class="xsmall dim">{{ reset.decided_at|date:"d M Y" }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "partials/empty.html" with icon="—" title="No reset requests" body="Students can ask for a reset from their dashboard if their face setup needs redoing." %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

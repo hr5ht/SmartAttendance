@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Attendance reports · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>Attendance reports</h1>
+    <p class="page-head__sub">
+      Confirmed sessions only — drafts stay out of the percentages.
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--secondary" href="{% url 'reports:export_csv' %}{% if query %}?{{ query }}{% endif %}">
+      Export CSV
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__head"><h2>Filters</h2></div>
+  <div class="card__body">
+    <form class="form" method="get">
+      <div class="form__row form__row--4">
+        {% include "partials/field.html" with field=form.section %}
+        {% include "partials/field.html" with field=form.subject %}
+        {% include "partials/field.html" with field=form.date_from %}
+        {% include "partials/field.html" with field=form.date_to %}
+      </div>
+      <div class="row">
+        <button class="btn btn--primary" type="submit">Apply</button>
+        <a class="btn btn--secondary" href="{% url 'reports:index' %}">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if summary.sessions %}
+  <div class="grid grid--cards mt-5">
+    <div class="stat">
+      <p class="stat__label">Sessions</p>
+      <p class="stat__value">{{ summary.sessions }}</p>
+      <p class="stat__hint">confirmed in this selection</p>
+    </div>
+    <div class="stat stat--present">
+      <p class="stat__label">Overall attendance</p>
+      <p class="stat__value">{{ summary.percentage }}%</p>
+      <p class="stat__hint">{{ summary.present }} of {{ summary.marks }} marks</p>
+    </div>
+    <div class="stat">
+      <p class="stat__label">Students</p>
+      <p class="stat__value">{{ summary.students }}</p>
+      <p class="stat__hint">appearing in these sessions</p>
+    </div>
+    <div class="stat stat--absent">
+      <p class="stat__label">Below {{ summary.threshold|floatformat:0 }}%</p>
+      <p class="stat__value">{{ summary.low_count }}</p>
+      <p class="stat__hint">students needing attention</p>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card mt-5">
+  <div class="card__head">
+    <h2>Per student</h2>
+    <span class="card__title-note push-right">{{ rows|length }} student{{ rows|length|pluralize }}</span>
+  </div>
+  <div class="card__body card__body--flush">
+    {% if rows %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Roll no</th><th scope="col">Name</th><th scope="col">Class</th>
+              <th scope="col" class="num">Held</th><th scope="col" class="num">Present</th>
+              <th scope="col" class="num">Absent</th><th scope="col">Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <th scope="row" class="mono">{{ row.roll_no }}</th>
+                <td>{{ row.name }}</td>
+                <td class="muted">{{ row.section }}</td>
+                <td class="num tabular">{{ row.held }}</td>
+                <td class="num tabular">{{ row.present }}</td>
+                <td class="num tabular">{{ row.absent }}</td>
+                <td style="min-width:160px">
+                  <div class="meter" role="img" aria-label="{{ row.percentage }} percent present">
+                    <div class="meter__fill {% if not row.is_low %}meter__fill--present{% endif %}"
+                         style="width: {{ row.percentage }}%"></div>
+                  </div>
+                  <span class="xsmall tabular {% if row.is_low %}pill pill--absent{% else %}dim{% endif %}">
+                    {{ row.percentage }}%
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "partials/empty.html" with icon="◷" title="Nothing to report yet" body="Attendance appears here once a teacher confirms a session. Drafts are not counted." %}
+    {% endif %}
+  </div>
+</div>
+
+{% if sessions %}
+  <div class="card mt-5">
+    <div class="card__head">
+      <h2>Sessions counted</h2>
+      <span class="card__title-note push-right">most recent first</span>
+    </div>
+    <div class="card__body card__body--flush">
+      <div class="table-wrap">
+        <table class="table table--compact">
+          <thead>
+            <tr>
+              <th scope="col">Date</th><th scope="col">Class</th><th scope="col">Subject</th>
+              <th scope="col" class="num">Period</th><th scope="col">Teacher</th><th scope="col">Notice</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+              <tr>
+                <td class="nowrap"><a href="{{ session.get_absolute_url }}">{{ session.date|date:"d M Y" }}</a></td>
+                <td>{{ session.section.name }}</td>
+                <td class="muted">{{ session.subject.code }}</td>
+                <td class="num tabular">{{ session.period }}</td>
+                <td class="muted">{{ session.teacher.name }}</td>
+                <td>
+                  {% if session.email_sent %}
+                    <span class="xsmall dim">Emailed</span>
+                  {% else %}
+                    <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Not sent</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

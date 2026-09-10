@@ -1,0 +1,88 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ institution_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% if user.is_authenticated %}app-shell{% else %}public-shell{% endif %}">
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__mark" aria-hidden="true">{% include "partials/icon.html" with name="scan" %}</span>
+        <span class="brand__text">{{ institution_name }}<small>ATTENDANCE WORKSPACE</small></span>
+      </a>
+
+      {% if user.is_authenticated %}
+        <button class="btn btn--ghost btn--sm nav-toggle push-right" type="button"
+                data-nav-toggle aria-expanded="false" aria-controls="site-nav">
+          Menu
+        </button>
+
+        <div class="site-header__collapse" id="site-nav">
+          <nav class="nav" aria-label="Main">
+            <span class="nav__label">WORKSPACE</span>
+            {% block nav %}
+              {% if is_admin_role %}
+                <a href="{% url 'accounts:admin_dashboard' %}">{% include "partials/icon.html" with name="grid" %}<span>Dashboard</span></a>
+                <a href="{% url 'students:list' %}">{% include "partials/icon.html" with name="users" %}<span>Students</span></a>
+                <a href="{% url 'students:resets' %}">{% include "partials/icon.html" with name="refresh" %}<span>Resets</span></a>
+                <a href="{% url 'reports:index' %}">{% include "partials/icon.html" with name="chart" %}<span>Reports</span></a>
+                <a href="{% url 'admin:index' %}">{% include "partials/icon.html" with name="settings" %}<span>Data admin</span></a>
+              {% elif is_teacher_role %}
+                <a href="{% url 'attendance:dashboard' %}">{% include "partials/icon.html" with name="scan" %}<span>Take attendance</span></a>
+                <a href="{% url 'reports:index' %}">{% include "partials/icon.html" with name="chart" %}<span>Reports</span></a>
+              {% elif is_student_role %}
+                <a href="{% url 'accounts:student_dashboard' %}">{% include "partials/icon.html" with name="grid" %}<span>Dashboard</span></a>
+                <a href="{% url 'reports:my_attendance' %}">{% include "partials/icon.html" with name="chart" %}<span>My attendance</span></a>
+                <a href="{% url 'face:enroll' %}">{% include "partials/icon.html" with name="scan" %}<span>Face setup</span></a>
+              {% endif %}
+            {% endblock %}
+          </nav>
+
+          <div class="account-panel">
+            <span class="user-chip">
+              <span class="user-chip__avatar" aria-hidden="true">{{ user.display_name|slice:":1"|upper }}</span>
+              <span>
+                {{ user.display_name }}
+                <span class="user-chip__role">{{ user.get_role_display }}</span>
+              </span>
+            </span>
+            <form method="post" action="{% url 'accounts:logout' %}">
+              {% csrf_token %}
+              <button class="btn btn--secondary btn--sm" type="submit">Sign out</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if user.is_authenticated %}
+  <div class="workspace-bar">
+    <span>{% if is_admin_role %}Administration{% elif is_teacher_role %}Teacher workspace{% else %}Student workspace{% endif %}<span class="workspace-bar__divider">/</span><strong>{{ institution_name }}</strong></span>
+    <time datetime="{% now 'Y-m-d' %}">{% now "D, d M Y" %}</time>
+  </div>
+  {% endif %}
+
+  {% include "partials/flash.html" %}
+
+  <main class="page" id="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <span>{{ institution_name }} · face-recognition attendance</span>
+      <span>Records are provisional until a teacher confirms the session.</span>
+    </div>
+  </footer>
+
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

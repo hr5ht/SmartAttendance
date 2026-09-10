@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}My attendance · {{ institution_name }}{% endblock %}
+
+{% block content %}
+{% if not student %}
+  <div class="card"><div class="card__body">
+    {% include "partials/empty.html" with icon="!" title="No student record" body="Your account has the student role but no student record. Ask an administrator for help." %}
+  </div></div>
+{% else %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>My attendance</h1>
+    <p class="page-head__sub">{{ student.roll_no }} · {{ student.section.name }}</p>
+  </div>
+</div>
+
+{% if held %}
+  <div class="grid grid--cards">
+    <div class="stat {% if is_low %}stat--absent{% else %}stat--present{% endif %}">
+      <p class="stat__label">Overall</p>
+      <p class="stat__value">{{ percentage }}%</p>
+      <p class="stat__hint">{{ present }} of {{ held }} classes</p>
+    </div>
+    <div class="stat">
+      <p class="stat__label">Classes held</p>
+      <p class="stat__value">{{ held }}</p>
+      <p class="stat__hint">confirmed by your teachers</p>
+    </div>
+    <div class="stat stat--absent">
+      <p class="stat__label">Missed</p>
+      <p class="stat__value">{{ absent }}</p>
+      <p class="stat__hint">marked absent</p>
+    </div>
+  </div>
+
+  {% if is_low %}
+    <div class="card mt-5">
+      <div class="card__body">
+        <p class="row-tight mb-0">
+          <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">▲</span>Below {{ threshold|floatformat:0 }}%</span>
+          <span class="muted small">
+            Your attendance is under the {{ threshold|floatformat:0 }}% the institution expects.
+            Speak to your class teacher if you think a record is wrong.
+          </span>
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card mt-5">
+    <div class="card__head"><h2>By subject</h2></div>
+    <div class="card__body card__body--flush">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Subject</th><th scope="col" class="num">Held</th>
+              <th scope="col" class="num">Present</th><th scope="col">Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in subjects %}
+              <tr>
+                <th scope="row">
+                  {{ entry.subject.name }}
+                  <span class="mono xsmall">{{ entry.subject.code }}</span>
+                </th>
+                <td class="num tabular">{{ entry.held }}</td>
+                <td class="num tabular">{{ entry.present }}</td>
+                <td style="min-width:160px">
+                  <div class="meter" role="img" aria-label="{{ entry.percentage }} percent present">
+                    <div class="meter__fill {% if not entry.is_low %}meter__fill--present{% endif %}"
+                         style="width: {{ entry.percentage }}%"></div>
+                  </div>
+                  <span class="xsmall tabular {% if entry.is_low %}pill pill--absent{% else %}dim{% endif %}">
+                    {{ entry.percentage }}%
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-5">
+    <div class="card__head">
+      <h2>Every class</h2>
+      <span class="card__title-note push-right">most recent first</span>
+    </div>
+    <div class="card__body card__body--flush">
+      <div class="table-wrap">
+        <table class="table table--compact">
+          <thead>
+            <tr>
+              <th scope="col">Date</th><th scope="col">Subject</th>
+              <th scope="col" class="num">Period</th><th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in records %}
+              <tr>
+                <td class="nowrap">{{ record.session.date|date:"d M Y" }}</td>
+                <td>{{ record.session.subject.short_label }}</td>
+                <td class="num tabular">{{ record.session.period }}</td>
+                <td>
+                  {% if record.is_present %}
+                    <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Present</span>
+                  {% else %}
+                    <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">✕</span>Absent</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="card"><div class="card__body">
+    {% include "partials/empty.html" with icon="◷" title="No attendance yet" body="Once your teachers confirm a class, your record appears here. Sessions still in draft are not counted." %}
+  </div></div>
+{% endif %}
+{% endif %}
+{% endblock %}

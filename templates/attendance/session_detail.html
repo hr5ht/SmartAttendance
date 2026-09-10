@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ session.section.name }} P{{ session.period }} · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>{{ session.section.name }} · {{ session.subject.short_label }}</h1>
+    <p class="page-head__sub">
+      Period {{ session.period }} · {{ session.date|date:"l, d F Y" }} ·
+      {{ session.teacher.name }}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--secondary" href="{% url 'attendance:dashboard' %}?date={{ session.date|date:'Y-m-d' }}">
+      Back to the day
+    </a>
+    {% if session.is_draft %}
+      <button class="btn btn--secondary" type="button" data-reprocess>Run again</button>
+    {% endif %}
+    {% if session.is_confirmed %}
+      <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Confirmed</span>
+    {% else %}
+      <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Draft</span>
+    {% endif %}
+  </div>
+</div>
+
+{# ---------------- processing state ---------------- #}
+<div class="card process-card" data-process-card {% if not needs_processing %}hidden{% endif %}>
+  <div class="card__body">
+    <div class="loading-panel">
+      <span class="spinner spinner--lg" aria-hidden="true"></span>
+      <span data-process-text role="status" aria-live="polite">Starting…</span>
+    </div>
+    <p class="xsmall dim mt-4 mb-0">
+      Recognition runs on the server and takes a few seconds per photo. Leave this
+      page open.
+    </p>
+  </div>
+</div>
+
+{# A run that could not start at all — empty gallery, missing models, no photos. #}
+<div class="card problem-card" data-problem-card hidden>
+  <div class="card__body">
+    <h2 data-problem-title>Couldn't process this session</h2>
+    <p class="muted" data-problem-message></p>
+    <div class="btn-group">
+      <button class="btn btn--secondary" type="button" data-reprocess>Try again</button>
+      <a class="btn btn--secondary" href="{% url 'attendance:dashboard' %}?date={{ session.date|date:'Y-m-d' }}">Back to the day</a>
+    </div>
+  </div>
+</div>
+
+<div data-results {% if needs_processing %}hidden{% endif %}>
+
+  {% if processed %}
+    <div class="grid grid--cards">
+      <div class="stat stat--present">
+        <p class="stat__label">Present</p>
+        <p class="stat__value">{{ counts.present }}</p>
+        <p class="stat__hint">of {{ counts.total }} on the roster</p>
+      </div>
+      <div class="stat stat--absent">
+        <p class="stat__label">Absent</p>
+        <p class="stat__value">{{ counts.absent }}</p>
+        <p class="stat__hint">{{ counts.percentage }}% attendance</p>
+      </div>
+      <div class="stat">
+        <p class="stat__label">Unknown faces</p>
+        <p class="stat__value">{{ unknown_faces|length }}</p>
+        <p class="stat__hint">detected but not recognised</p>
+      </div>
+      <div class="stat">
+        <p class="stat__label">Not enrolled</p>
+        <p class="stat__value">{{ unenrolled|length }}</p>
+        <p class="stat__hint">can't be detected yet</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---------------- photos ---------------- #}
+  <div class="card mt-5">
+    <div class="card__head">
+      <h2>Photos</h2>
+      <span class="card__title-note push-right">{{ images|length }} uploaded</span>
+    </div>
+    <div class="card__body">
+      <ul class="shots">
+        {% for image in images %}
+          <li class="shot shot--detail">
+            <img src="{{ image.image.url }}" alt="Classroom photo {{ forloop.counter }}" loading="lazy">
+            <span class="shot__badge">{{ forloop.counter }}</span>
+            <div class="shot__meta">
+              {% if image.status == 'DONE' %}
+                <span class="xsmall">{{ image.faces_detected }} face{{ image.faces_detected|pluralize }} · {{ image.faces_matched }} recognised</span>
+                <span class="xsmall dim">{{ image.elapsed_seconds|floatformat:1 }}s</span>
+              {% elif image.status == 'FAILED' %}
+                <span class="xsmall" style="color: var(--c-absent)">{{ image.error_message }}</span>
+              {% else %}
+                <span class="xsmall dim">Not processed yet</span>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {# ---------------- roster ---------------- #}
+  <div class="card mt-5">
+    <div class="card__head">
+      <h2>Roster</h2>
+      <span class="card__title-note push-right">
+        {% if session.is_confirmed %}
+          Confirmed {{ session.confirmed_at|date:"d M Y, H:i" }}
+        {% else %}
+          Nothing is recorded until you confirm the session
+        {% endif %}
+      </span>
+    </div>
+    <div class="card__body card__body--flush">
+      {% if records %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Roll no</th><th scope="col">Name</th>
+                <th scope="col">Status</th><th scope="col" class="num">Confidence</th>
+                <th scope="col">Face setup</th>
+                {% if session.is_draft %}<th scope="col">Correct</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in records %}
+                <tr>
+                  <th scope="row" class="mono">{{ record.student.roll_no }}</th>
+                  <td>{{ record.student.name }}</td>
+                  <td>
+                    {% if record.is_present %}
+                      <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Present</span>
+                    {% else %}
+                      <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">✕</span>Absent</span>
+                    {% endif %}
+                    {% if record.source == 'MANUAL' %}
+                      <span class="pill pill--neutral" title="{{ record.override_reason }}">by hand</span>
+                    {% endif %}
+                  </td>
+                  <td class="num tabular">
+                    {% if record.confidence %}{{ record.confidence_percent }}%{% else %}<span class="dim">—</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if not record.student.face_enrolled %}
+                      <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Not enrolled</span>
+                    {% else %}
+                      <span class="xsmall dim">Enrolled</span>
+                    {% endif %}
+                  </td>
+                  {% if session.is_draft %}
+                    <td>
+                      <form method="post" action="{% url 'attendance:override_record' session.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="student" value="{{ record.student.pk }}">
+                        {% if record.is_present %}
+                          <input type="hidden" name="status" value="ABSENT">
+                          <button class="btn btn--secondary btn--sm" type="submit">Mark absent</button>
+                        {% else %}
+                          <input type="hidden" name="status" value="PRESENT">
+                          <button class="btn btn--secondary btn--sm" type="submit">Mark present</button>
+                        {% endif %}
+                      </form>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {% include "partials/empty.html" with icon="◷" title="No results yet" body="Process the photos to see who was recognised." %}
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------------- unknown faces ---------------- #}
+  {% if unknown_faces %}
+    <div class="card mt-5">
+      <div class="card__head">
+        <h2>Unknown faces</h2>
+        <span class="card__title-note push-right">
+          Detected but not confidently matched{% if session.is_draft %} — put a name to them below{% endif %}
+        </span>
+      </div>
+      <div class="card__body">
+        <ul class="thumbs">
+          {% for face in unknown_faces %}
+            <li>
+              {% if face.crop %}
+                <img src="{{ face.crop.url }}" alt="Unrecognised face" loading="lazy">
+              {% endif %}
+              <span class="thumbs__name">
+                {% if face.reject_reason == 'AMBIGUOUS' %}Too close to call
+                {% elif face.reject_reason == 'COLLISION' %}Duplicate match
+                {% else %}No match{% endif %}
+                {% if face.similarity %} · {{ face.confidence_percent }}%{% endif %}
+              </span>
+              {% if session.is_draft %}
+                <form class="assign" method="post" action="{% url 'attendance:assign_face' session.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="face" value="{{ face.pk }}">
+                  <label class="visually-hidden" for="assign-{{ face.pk }}">Assign this face to a student</label>
+                  <select class="field__select" id="assign-{{ face.pk }}" name="student" required>
+                    <option value="">Who is this?</option>
+                    {% for student in roster %}
+                      <option value="{{ student.pk }}">{{ student.roll_no }} — {{ student.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn--secondary btn--sm" type="submit">Assign</button>
+                </form>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---------------- confirm ---------------- #}
+  {% if processed %}
+    <div class="card mt-5 confirm-card">
+      <div class="card__body">
+        {% if session.is_confirmed %}
+          <h2>Attendance confirmed</h2>
+          <p class="muted small">
+            Committed {{ session.confirmed_at|date:"l, d F Y \a\t H:i" }} ·
+            {{ counts.present }} present, {{ counts.absent }} absent.
+            These records now count towards the reports.
+          </p>
+          {% if session.email_sent %}
+            <p class="row-tight mb-0">
+              <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Notice emailed</span>
+            </p>
+          {% else %}
+            <p class="row-tight mb-0">
+              <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">!</span>Notice not sent</span>
+              <span class="muted small">{{ session.email_error }}</span>
+            </p>
+          {% endif %}
+        {% else %}
+          <h2>Confirm this register</h2>
+          <p class="muted small">
+            Check the roster above and correct anything the camera got wrong.
+            Confirming commits {{ counts.present }} present and {{ counts.absent }} absent,
+            emails the notice, and locks the session.
+          </p>
+          <form method="post" action="{% url 'attendance:confirm_session' session.pk %}">
+            {% csrf_token %}
+            <button class="btn btn--primary" type="submit"
+                    data-confirm="Confirm attendance for {{ session.section.name }} · {{ session.subject.code }} · period {{ session.period }}? {{ counts.present }} present and {{ counts.absent }} absent will be committed, and the session can no longer be edited."
+                    data-confirm-label="Confirm attendance">Confirm attendance</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---------------- not yet enrolled ---------------- #}
+  {% if unenrolled %}
+    <div class="card mt-5">
+      <div class="card__head">
+        <h2>Not yet face-enrolled</h2>
+        <span class="card__title-note push-right">
+          These students can't be detected at all
+        </span>
+      </div>
+      <div class="card__body">
+        <p class="muted small">
+          They haven't finished face setup on their phone, so the matcher skips them.
+          Until they do, mark them by hand.
+        </p>
+        <ul class="chips">
+          {% for student in unenrolled %}
+            <li><span class="mono">{{ student.roll_no }}</span> {{ student.name }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script id="csrf-token" type="application/json">"{{ csrf_token }}"</script>
+<script id="process-urls" type="application/json">{"process": "{% url 'attendance:process_session' session.pk %}", "status": "{% url 'attendance:session_status' session.pk %}"}</script>
+{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/attendance.css' %}">{% endblock %}
+{% block extra_js %}<script src="{% static 'js/process.js' %}" defer></script>{% endblock %}

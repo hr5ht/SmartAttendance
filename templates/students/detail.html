@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>{{ student.name }}</h1>
+    <p class="page-head__sub">
+      {{ student.roll_no }} · {{ student.section.name }} ·
+      <span class="mono">{{ student.user.username }}</span>
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--secondary" href="{% url 'students:edit' student.pk %}">Edit</a>
+    <form method="post" action="{% url 'students:reset_password' student.pk %}">
+      {% csrf_token %}
+      <button class="btn btn--danger" type="submit"
+              data-confirm="Issue a new password for {{ student.name }}? Their current password stops working immediately."
+              data-confirm-label="Reset password">Reset password</button>
+    </form>
+  </div>
+</div>
+
+{% if student.flagged_for_review %}
+  <div class="card mb-0" style="border-color: var(--c-absent); margin-bottom: var(--s-5)">
+    <div class="card__body">
+      <h2 style="color: var(--c-absent)">Flagged for review</h2>
+      <p class="small muted" style="white-space: pre-line">{{ student.flag_reason }}</p>
+      <form method="post" action="{% url 'students:clear_flag' student.pk %}">
+        {% csrf_token %}
+        <button class="btn btn--secondary btn--sm" type="submit">Clear flag</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<div class="grid grid--halves">
+  <div class="card">
+    <div class="card__head">
+      <h2>Face setup</h2>
+      <span class="push-right">
+        {% if student.face_enrolled %}
+          <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Complete</span>
+        {% else %}
+          <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>{{ student.enrollment_count }} of {{ student.enrollment_target }}</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="card__body">
+      {% if enrollments %}
+        <ul class="samples">
+          {% for sample in enrollments %}
+            <li>
+              <img src="{{ sample.image.url }}" alt="{{ sample.get_pose_display }} sample" loading="lazy">
+              <span class="xsmall strong">{{ sample.get_pose_display }}</span>
+              <span class="xsmall dim">
+                score {{ sample.det_score|floatformat:2 }} · {{ sample.face_width }}px
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small mb-0">
+          No samples yet. The student completes this themselves at
+          <span class="mono">/student/enroll/</span> after their first sign-in.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__head"><h2>Account</h2></div>
+    <div class="card__body">
+      <dl class="facts">
+        <dt>Username</dt><dd class="mono">{{ student.user.username }}</dd>
+        <dt>Email</dt><dd>{{ student.email|default:"—" }}</dd>
+        <dt>Must change password</dt>
+        <dd>{% if student.user.must_change_password %}Yes — at next sign-in{% else %}No{% endif %}</dd>
+        <dt>Password changed</dt>
+        <dd>{{ student.user.password_changed_at|date:"d M Y H:i"|default:"Never" }}</dd>
+        <dt>Enrolment finished</dt>
+        <dd>{{ student.enrollment_completed_at|date:"d M Y H:i"|default:"—" }}</dd>
+      </dl>
+      {% if reset_requests %}
+        <div class="divider-label">Reset requests</div>
+        <ul class="small muted" style="margin:0; padding-left: var(--s-4)">
+          {% for reset in reset_requests %}
+            <li>{{ reset.created_at|date:"d M Y" }} — {{ reset.get_status_display }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .samples {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; gap: var(--s-3);
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
+  .samples li { display: grid; gap: 2px; }
+  .samples img {
+    width: 100%; aspect-ratio: 3/4; object-fit: cover;
+    border-radius: var(--r-sm); border: 1px solid var(--c-border);
+  }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s-2) var(--s-4); margin: 0; font-size: var(--fs-sm); }
+  .facts dt { color: var(--c-ink-60); }
+  .facts dd { margin: 0; color: var(--c-ink-100); font-weight: 550; }
+</style>
+{% endblock %}

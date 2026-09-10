@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Face setup · {{ institution_name }}{% endblock %}
+
+{% block content %}
+{% if not student %}
+  <div class="card"><div class="card__body">
+    {% include "partials/empty.html" with icon="!" title="No student record" body="Your account has the student role but no student record. Ask an administrator for help." %}
+  </div></div>
+{% else %}
+
+<div class="wizard">
+  <div class="page-head">
+    <div class="page-head__text">
+      <h1>Face setup</h1>
+      <p class="page-head__sub">
+        Five quick photos so you can be marked present automatically.
+      </p>
+    </div>
+  </div>
+
+  {# ---------------- progress ---------------- #}
+  <div class="progress" data-progress-region>
+    <div class="progress__bar" role="img"
+         aria-label="Step {{ progress.done }} of {{ progress.total }} complete">
+      {% for step in steps %}
+        <span class="progress__tick {% if step.index in progress.completed_steps %}is-done{% endif %}"
+              data-tick="{{ step.index }}"></span>
+      {% endfor %}
+    </div>
+    <p class="progress__label">
+      <span data-progress-text>{{ progress.done }} of {{ progress.total }} done</span>
+    </p>
+  </div>
+
+  {# ---------------- already finished ---------------- #}
+  <div class="card wizard__done" data-done-card {% if not progress.complete %}hidden{% endif %}>
+    <div class="card__body text-center">
+      <div class="empty__icon" aria-hidden="true">✓</div>
+      <h2>Face setup complete</h2>
+      <p class="muted">
+        You can now be recognised in classroom photos. If your appearance changes a
+        lot, ask an administrator to reset this so you can redo it.
+      </p>
+      <div class="btn-group" style="justify-content:center">
+        <a class="btn btn--primary" href="{% url 'accounts:student_dashboard' %}">Back to my attendance</a>
+      </div>
+    </div>
+  </div>
+
+  {# ---------------- the capture step ---------------- #}
+  <div class="card" data-capture-card {% if progress.complete %}hidden{% endif %}>
+    <div class="card__head">
+      <h2 data-step-title>
+        {% if progress.next_step %}{{ progress.next_step.title }}{% endif %}
+      </h2>
+    </div>
+    <div class="card__body">
+      <p class="muted small" data-step-hint>
+        {% if progress.next_step %}{{ progress.next_step.hint }}{% endif %}
+      </p>
+
+      {# Live camera. Hidden until getUserMedia succeeds. #}
+      <div class="stage" data-stage hidden>
+        <video class="stage__video" data-video playsinline autoplay muted
+               aria-label="Camera preview"></video>
+        <img class="stage__preview" data-preview alt="Your captured photo" hidden>
+        <div class="stage__guide" aria-hidden="true"></div>
+      </div>
+
+      <canvas data-canvas class="visually-hidden" aria-hidden="true"></canvas>
+
+      {% comment %}
+        Fallback: the OS camera app via a file input. Always in the DOM so the
+        flow still works when getUserMedia is unavailable or permission is denied.
+      {% endcomment %}
+      <div class="fallback" data-fallback>
+        <p class="fallback__note fallback__note--neutral" data-fallback-note>
+          Opening the camera… if nothing appears, use the button below — it opens
+          your normal camera app and works just as well.
+        </p>
+        <label class="btn btn--primary btn--block" for="fallback-input">
+          Take a photo
+        </label>
+        <input class="visually-hidden" type="file" id="fallback-input"
+               accept="image/*" capture="user" data-fallback-input>
+      </div>
+
+      {# Result of the last attempt. aria-live so it is announced. #}
+      <p class="capture-msg" data-message role="status" aria-live="polite"></p>
+
+      <div class="capture-actions" data-actions hidden>
+        <button class="btn btn--primary btn--block" type="button" data-shoot>
+          Take photo
+        </button>
+        <div class="btn-group btn-group--review" data-review hidden>
+          <button class="btn btn--secondary" type="button" data-retake>Retake</button>
+          <button class="btn btn--primary" type="button" data-use>Use this photo</button>
+        </div>
+        <p class="loading-panel" data-busy hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Checking your photo…</span>
+        </p>
+      </div>
+
+      <details class="tips">
+        <summary>Tips for a photo that passes</summary>
+        <ul>
+          <li>Be alone in the frame — only one face is allowed.</li>
+          <li>Hold the phone about an arm's length away, at eye level.</li>
+          <li>Face a window or a lamp. Don't stand with a bright light behind you.</li>
+          <li>Take off sunglasses, hats and masks. Glasses are fine.</li>
+          <li>Hold still until the camera focuses so the photo isn't blurry.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+
+  {# ---------------- steps overview ---------------- #}
+  <div class="card mt-5">
+    <div class="card__head"><h3>The five photos</h3></div>
+    <div class="card__body card__body--flush">
+      <ul class="steplist">
+        {% for step in steps %}
+          <li class="steplist__item {% if step.index in progress.completed_steps %}is-done{% endif %}"
+              data-step-row="{{ step.index }}">
+            <span class="steplist__num" aria-hidden="true">{{ forloop.counter }}</span>
+            <div class="steplist__text">
+              <span class="strong">{{ step.title }}</span>
+              <span class="xsmall dim">{{ step.hint }}</span>
+            </div>
+            <span class="steplist__state">
+              <span class="pill pill--present" data-row-done {% if step.index not in progress.completed_steps %}hidden{% endif %}>
+                <span class="pill__icon" aria-hidden="true">✓</span>Done
+              </span>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {% if pending_reset %}
+    <p class="small muted mt-4">
+      <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Reset requested</span>
+      Waiting for an administrator to approve it.
+    </p>
+  {% endif %}
+</div>
+
+<script id="csrf-token" type="application/json">"{{ csrf_token }}"</script>
+<script id="capture-url" type="application/json">"{% url 'face:capture' %}"</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/enroll.css' %}">{% endblock %}
+{% block extra_js %}<script src="{% static 'js/enroll.js' %}" defer></script>{% endblock %}

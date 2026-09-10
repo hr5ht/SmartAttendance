@@ -1,0 +1,12 @@
+{# aria-live so screen readers announce messages added after page load #}
+<div class="flash-region" role="status" aria-live="polite" data-flash-region>
+  {% for message in messages %}
+    <div class="toast toast--{{ message.tags|default:'info' }}">
+      <span class="toast__icon" aria-hidden="true">
+        {% if 'success' in message.tags %}✓{% elif 'error' in message.tags %}!{% elif 'warning' in message.tags %}▲{% else %}i{% endif %}
+      </span>
+      <div class="toast__body">{{ message }}</div>
+      <button class="toast__close" type="button" data-toast-close aria-label="Dismiss message">×</button>
+    </div>
+  {% endfor %}
+</div>

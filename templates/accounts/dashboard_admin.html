@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Admin dashboard · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <span class="eyebrow">CAMPUS OVERVIEW</span>
+    <h1>Administration</h1>
+    <p class="page-head__sub">Students, credentials and enrolment health across all sections.</p>
+  </div>
+  <div class="page-head__actions"><a class="btn btn--secondary" href="{% url 'reports:index' %}">{% include "partials/icon.html" with name="chart" %} View reports</a><a class="btn btn--primary" href="{% url 'students:create' %}">{% include "partials/icon.html" with name="plus" %} Add student</a></div>
+</div>
+
+<div class="grid grid--cards">
+  <div class="stat">
+    <div class="stat__top"><p class="stat__label">Students</p><span class="stat__icon">{% include "partials/icon.html" with name="users" %}</span></div>
+    <p class="stat__value">{{ total_students }}</p>
+    <p class="stat__hint">active records</p>
+  </div>
+  <div class="stat stat--present">
+    <div class="stat__top"><p class="stat__label">Face enrolled</p><span class="stat__icon">{% include "partials/icon.html" with name="scan" %}</span></div>
+    <p class="stat__value">{{ enrolled_students }}</p>
+    <p class="stat__hint">ready for attendance</p>
+  </div>
+  <div class="stat">
+    <div class="stat__top"><p class="stat__label">Pending resets</p><span class="stat__icon">{% include "partials/icon.html" with name="refresh" %}</span></div>
+    <p class="stat__value">{{ pending_resets }}</p>
+    <p class="stat__hint">awaiting your approval</p>
+  </div>
+  <div class="stat stat--absent">
+    <div class="stat__top"><p class="stat__label">Flagged</p><span class="stat__icon">{% include "partials/icon.html" with name="settings" %}</span></div>
+    <p class="stat__value">{{ flagged_students }}</p>
+    <p class="stat__hint">need an enrolment review</p>
+  </div>
+</div>
+
+<div class="card mt-5">
+  <div class="card__head">
+    <h2>Sections</h2>
+    <span class="card__title-note push-right">Enrolment coverage per section</span>
+  </div>
+  <div class="card__body card__body--flush">
+    {% if sections %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Section</th>
+              <th scope="col">Department</th>
+              <th scope="col" class="num">Students</th>
+              <th scope="col" class="num">Enrolled</th>
+              <th scope="col">Coverage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for section in sections %}
+              <tr>
+                <th scope="row">{{ section.name }}</th>
+                <td class="muted">{{ section.department.code }}</td>
+                <td class="num tabular">{{ section.student_count }}</td>
+                <td class="num tabular">{{ section.enrolled_count }}</td>
+                <td style="min-width:140px">
+                  {% widthratio section.enrolled_count section.student_count|default:1 100 as pct %}
+                  <div class="meter" role="img" aria-label="{{ pct }} percent enrolled">
+                    <div class="meter__fill meter__fill--present" style="width: {{ pct }}%"></div>
+                  </div>
+                  <span class="xsmall dim tabular">{{ pct }}%</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "partials/empty.html" with icon="＋" title="No sections yet" body="Create departments, sections and subjects in the data admin to get started." %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mt-5">
+  <div class="card__head"><h2>Recent sessions</h2></div>
+  <div class="card__body card__body--flush">
+    {% if recent_sessions %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Date</th><th scope="col">Section</th><th scope="col">Subject</th>
+              <th scope="col" class="num">Period</th><th scope="col">Teacher</th><th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in recent_sessions %}
+              <tr>
+                <td class="nowrap">{{ session.date|date:"d M Y" }}</td>
+                <td>{{ session.section.name }}</td>
+                <td class="muted">{{ session.subject.code }}</td>
+                <td class="num tabular">{{ session.period }}</td>
+                <td class="muted">{{ session.teacher.name }}</td>
+                <td>
+                  {% if session.is_confirmed %}
+                    <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Confirmed</span>
+                  {% else %}
+                    <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Draft</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "partials/empty.html" with icon="◷" title="No sessions recorded" body="Attendance sessions created by teachers will appear here." %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

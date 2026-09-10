@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Sign in · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="auth">
+  <section class="auth__story">
+    <span class="eyebrow">SMARTER CLASSROOMS. EVERY DAY.</span>
+    <h2>Less roll call.<br>More possibility.</h2>
+    <p>A simpler way to manage attendance. Bring your classroom, student records and daily insights together in one workspace.</p>
+    <div class="auth-visual" aria-hidden="true">
+      <div class="auth-visual__top"><span class="auth-visual__symbol">{% include "partials/icon.html" with name="scan" %}</span><span>Classroom attendance<small>From classroom to confirmed record</small></span></div>
+      <div class="auth-visual__people">{% for n in "12345678" %}<span>{% include "partials/icon.html" with name="users" %}</span>{% endfor %}</div>
+      <div class="auth-visual__bottom"><span>{% include "partials/icon.html" with name="check" %} Capture. Review. Confirm.</span><span class="auth-visual__line"></span></div>
+    </div>
+    <div class="auth__features"><span>{% include "partials/icon.html" with name="scan" %} Face recognition</span><span>{% include "partials/icon.html" with name="chart" %} Clear reporting</span></div>
+  </section>
+  <div class="card auth__card">
+    <div class="card__body">
+      <span class="auth__welcome">YOUR CAMPUS, CONNECTED</span>
+      <h1>Welcome back</h1>
+      <p class="muted small">
+        Sign in to your account to access your attendance workspace.
+      </p>
+
+      <form method="post" class="form" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="form-errors" role="alert">
+            <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          </div>
+        {% endif %}
+        {% include "partials/field.html" with field=form.username %}
+        {% include "partials/field.html" with field=form.password %}
+        <button class="btn btn--primary btn--block" type="submit">Sign in {% include "partials/icon.html" with name="arrow" %}</button>
+      </form>
+      <p class="auth__help">Use the credentials provided by your institution.<br>Need help signing in? Contact your administrator.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

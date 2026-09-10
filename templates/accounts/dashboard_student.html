@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}My attendance · {{ institution_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .reset-form { display: grid; gap: var(--s-2); justify-items: start; max-width: 46ch; }
+  .reset-form .field__textarea { width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if not student %}
+  <div class="card"><div class="card__body">
+    {% include "partials/empty.html" with icon="!" title="No student record" body="Your account has the student role but no student record. Ask an administrator for help." %}
+  </div></div>
+{% else %}
+<div class="page-head">
+  <div class="page-head__text">
+    <span class="eyebrow">YOUR STUDENT WORKSPACE</span>
+    <h1>Hello, {{ student.name }}</h1>
+    <p class="page-head__sub">{{ student.roll_no }} · {{ student.section.name }}</p>
+  </div>
+  <a class="btn btn--primary" href="{% url 'reports:my_attendance' %}">{% include "partials/icon.html" with name="chart" %} View my attendance</a>
+</div>
+
+<div class="card">
+  <div class="card__head"><h2>Face setup</h2></div>
+  <div class="card__body">
+    {% if student.face_enrolled %}
+      <p class="row-tight">
+        <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Complete</span>
+        <span class="muted small">
+          Finished {{ student.enrollment_completed_at|date:"d M Y" }} ·
+          {{ student.enrollment_count }} samples stored
+        </span>
+      </p>
+      <p class="muted small">
+        You can be recognised in classroom photos. If your appearance has changed a lot,
+        request a reset and an administrator will review it.
+      </p>
+      {% if not pending_reset %}
+        <form method="post" action="{% url 'face:request_reset' %}" class="reset-form">
+          {% csrf_token %}
+          <label class="field__label" for="reason">Why do you need a reset?</label>
+          <textarea class="field__textarea" id="reason" name="reason" rows="2"
+                    placeholder="e.g. I've grown a beard and I'm not being recognised"></textarea>
+          <button class="btn btn--secondary btn--sm" type="submit"
+                  data-confirm="Ask an administrator to clear your face setup? You'll need to take the five photos again once they approve."
+                  data-confirm-label="Request reset">Request a reset</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <p class="row-tight">
+        <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Not finished</span>
+        <span class="muted small">{{ student.enrollment_count }} of {{ student.enrollment_target }} captures done</span>
+      </p>
+      <div class="meter mt-4" role="img"
+           aria-label="{{ student.enrollment_progress_percent }} percent of face setup complete">
+        <div class="meter__fill" style="width: {{ student.enrollment_progress_percent }}%"></div>
+      </div>
+      <p class="muted small mt-4">
+        Until this is finished you can't be marked present automatically — your teacher
+        will see you listed as “not yet enrolled”.
+      </p>
+      <a class="btn btn--primary" href="{% url 'face:enroll' %}">
+        {% if student.enrollment_count %}Continue face setup{% else %}Start face setup{% endif %}
+      </a>
+    {% endif %}
+    {% if pending_reset %}
+      <p class="small mt-4 mb-0">
+        <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>Reset requested</span>
+        <span class="muted">Waiting for an administrator to approve it.</span>
+      </p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

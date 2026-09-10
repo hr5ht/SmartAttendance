@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Students · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>Students</h1>
+    <p class="page-head__sub">{{ students|length }} record{{ students|length|pluralize }}</p>
+  </div>
+  <div class="page-head__actions">
+    {% if issued_count %}
+      <a class="btn btn--secondary" href="{% url 'students:credentials' %}">
+        Credentials ({{ issued_count }})
+      </a>
+    {% endif %}
+    {% if pending_resets %}
+      <a class="btn btn--secondary" href="{% url 'students:resets' %}">
+        Resets ({{ pending_resets }})
+      </a>
+    {% endif %}
+    <a class="btn btn--primary" href="{% url 'students:create' %}">Add student</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__head">
+    <form class="filters" method="get" role="search">
+      <label class="visually-hidden" for="q">Search students</label>
+      <input class="field__input" type="search" id="q" name="q"
+             value="{{ form.q.value|default:'' }}" placeholder="Roll number, name or username">
+      <label class="visually-hidden" for="section">Filter by section</label>
+      <select class="field__select" id="section" name="section">
+        <option value="">All sections</option>
+        {% for section in sections %}
+          <option value="{{ section.pk }}" {% if form.section.value|stringformat:'s' == section.pk|stringformat:'s' %}selected{% endif %}>{{ section.label }}</option>
+        {% endfor %}
+      </select>
+      <label class="visually-hidden" for="enrolled">Filter by face status</label>
+      <select class="field__select" id="enrolled" name="enrolled">
+        <option value="">Any face status</option>
+        <option value="yes" {% if form.enrolled.value == 'yes' %}selected{% endif %}>Face enrolled</option>
+        <option value="no" {% if form.enrolled.value == 'no' %}selected{% endif %}>Not enrolled</option>
+      </select>
+      <button class="btn btn--secondary" type="submit">Filter</button>
+    </form>
+  </div>
+  <div class="card__body card__body--flush">
+    {% if students %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Roll no</th><th scope="col">Name</th>
+              <th scope="col">Section</th><th scope="col">Username</th>
+              <th scope="col">Face setup</th><th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr>
+                <th scope="row" class="mono">{{ student.roll_no }}</th>
+                <td>
+                  {{ student.name }}
+                  {% if student.flagged_for_review %}
+                    <span class="pill pill--absent"><span class="pill__icon" aria-hidden="true">!</span>Flagged</span>
+                  {% endif %}
+                </td>
+                <td class="muted">{{ student.section.name }}</td>
+                <td class="mono muted">{{ student.user.username }}</td>
+                <td>
+                  {% if student.face_enrolled %}
+                    <span class="pill pill--present"><span class="pill__icon" aria-hidden="true">✓</span>Complete</span>
+                  {% else %}
+                    <span class="pill pill--pending"><span class="pill__icon" aria-hidden="true">●</span>{{ student.enrollment_count }} of {{ student.enrollment_target }}</span>
+                  {% endif %}
+                </td>
+                <td class="num">
+                  <a class="btn btn--ghost btn--sm" href="{% url 'students:detail' student.pk %}">Open</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "partials/empty.html" with icon="＋" title="No students match" body="Adjust the filters, or add the first student of this section." action_url="/manage/students/new/" action_label="Add student" %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filters { display: flex; gap: var(--s-2); flex-wrap: wrap; width: 100%; }
+  .filters .field__input { flex: 1 1 220px; }
+  .filters .field__select { flex: 0 1 180px; }
+</style>
+{% endblock %}

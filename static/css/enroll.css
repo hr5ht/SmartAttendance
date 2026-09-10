@@ -1,0 +1,116 @@
+/* Face enrollment wizard. Phone-first: everything here is sized for a
+   375px screen and a thumb, then relaxed on wider viewports. */
+
+.wizard { max-width: 560px; margin: 0 auto; }
+
+/* ---------- progress ---------- */
+.progress { margin-bottom: var(--s-4); }
+.progress__bar { display: flex; gap: var(--s-1); }
+.progress__tick {
+  flex: 1; height: 6px; border-radius: var(--r-pill);
+  background: var(--c-border);
+}
+.progress__tick.is-done { background: var(--c-present); }
+.progress__label {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sm); color: var(--c-ink-60); font-weight: 550;
+}
+
+/* ---------- camera stage ---------- */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #14140f;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: var(--s-4);
+}
+.stage__video, .stage__preview {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* The front camera is mirrored so moving left on screen feels natural. */
+.stage__video { transform: scaleX(-1); }
+.stage__preview { transform: scaleX(-1); background: #14140f; }
+
+/* An oval to aim the face at — purely a framing hint. */
+.stage__guide {
+  position: absolute; inset: 0;
+  border: 2px dashed rgba(255, 255, 255, .55);
+  border-radius: 50% / 42%;
+  margin: 12% 16%;
+  pointer-events: none;
+}
+.stage.is-shot .stage__guide { display: none; }
+
+@media (min-width: 620px) {
+  .stage { aspect-ratio: 4 / 3; }
+}
+
+/* ---------- fallback ---------- */
+.fallback { margin-bottom: var(--s-4); }
+.fallback__note {
+  font-size: var(--fs-sm); color: var(--c-pending);
+  background: var(--c-pending-soft);
+  border: 1px solid #ecd6a6; border-radius: var(--r-md);
+  padding: var(--s-3); margin: 0 0 var(--s-3); max-width: none;
+}
+/* Before we know whether the camera works, this is information, not a warning. */
+.fallback__note--neutral {
+  color: var(--c-ink-60); background: var(--c-surface-alt);
+  border-color: var(--c-border);
+}
+
+/* ---------- actions: big thumb targets ---------- */
+.capture-actions { display: grid; gap: var(--s-3); }
+.capture-actions .btn { min-height: 52px; font-size: var(--fs-base); }
+.btn-group--review { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.btn-group--review .btn { width: 100%; }
+
+.capture-msg { margin: 0; font-size: var(--fs-sm); font-weight: 550; }
+.capture-msg:empty { display: none; }
+.capture-msg {
+  padding: var(--s-3); border-radius: var(--r-md); max-width: none;
+  margin-bottom: var(--s-3);
+}
+.capture-msg--error   { background: var(--c-absent-soft);  color: var(--c-absent);  border: 1px solid #efc4c1; }
+.capture-msg--success { background: var(--c-present-soft); color: var(--c-present); border: 1px solid #bfe0cd; }
+.capture-msg--info    { background: var(--c-accent-soft);  color: var(--c-accent-dark); border: 1px solid #c8d3fb; }
+
+/* ---------- tips ---------- */
+.tips { margin-top: var(--s-4); font-size: var(--fs-sm); }
+.tips summary {
+  cursor: pointer; color: var(--c-accent-dark); font-weight: 600;
+  padding: var(--s-2) 0; min-height: var(--tap); display: flex; align-items: center;
+}
+.tips ul { margin: 0 0 0 var(--s-4); padding: 0; color: var(--c-ink-60); }
+.tips li { margin-bottom: var(--s-1); }
+
+/* ---------- the five steps ---------- */
+.steplist { list-style: none; margin: 0; padding: 0; }
+.steplist__item {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.steplist__item:last-child { border-bottom: 0; }
+.steplist__item.is-done { background: var(--c-present-soft); }
+.steplist__num {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--c-surface-alt); border: 1px solid var(--c-border);
+  color: var(--c-ink-60); font-size: var(--fs-xs); font-weight: 650;
+}
+.steplist__item.is-done .steplist__num {
+  background: var(--c-present); border-color: var(--c-present); color: #fff;
+}
+.steplist__text { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.steplist__state { flex: none; margin-left: auto; }
+
+.wizard__done .empty__icon {
+  background: var(--c-present-soft); border-color: #bfe0cd;
+  color: var(--c-present); margin: 0 auto var(--s-3);
+}

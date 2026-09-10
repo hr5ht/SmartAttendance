@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{% if student %}Edit {{ student.name }}{% else %}Add student{% endif %} · {{ institution_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>{% if student %}Edit student{% else %}Add student{% endif %}</h1>
+    <p class="page-head__sub">
+      {% if student %}
+        Changing these details doesn't change their password.
+      {% else %}
+        A username and a random password are generated automatically — you'll see
+        them on the next screen.
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="card" style="max-width:620px">
+  <div class="card__body">
+    <form class="form" method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-errors" role="alert">
+          <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+      <div class="form__row form__row--2">
+        {% include "partials/field.html" with field=form.roll_no %}
+        {% include "partials/field.html" with field=form.section %}
+      </div>
+      {% include "partials/field.html" with field=form.name %}
+      {% include "partials/field.html" with field=form.email %}
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">
+          {% if student %}Save changes{% else %}Create student{% endif %}
+        </button>
+        <a class="btn btn--secondary" href="{% url 'students:list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

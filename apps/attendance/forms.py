@@ -4,7 +4,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from apps.academics.models import ClassSection, Department, Subject, Year
+from apps.academics.models import ClassSection, Department, Subject, TimetableSlot
 from apps.accounts.forms import StyledFormMixin
 from apps.attendance.models import AttendanceSession
 from apps.face.imaging import validate_upload
@@ -29,19 +29,18 @@ class MultipleFileField(forms.FileField):
 
 
 class SessionDetailsForm(StyledFormMixin, forms.Form):
-    """Branch → section → subject → period → date, limited to what this teacher takes."""
+    """Branch → section → subject → date; timetable supplies the period."""
 
     department = forms.ModelChoiceField(
         queryset=Department.objects.none(), label="Branch", empty_label="Select branch"
     )
-    year = forms.TypedChoiceField(label="Year", coerce=int, choices=())
     section = forms.ModelChoiceField(
         queryset=ClassSection.objects.none(), label="Section", empty_label="Select section"
     )
     subject = forms.ModelChoiceField(
         queryset=Subject.objects.none(), label="Subject", empty_label="Select subject"
     )
-    period = forms.TypedChoiceField(label="Period", coerce=int, choices=())
+    timetable_slot = forms.IntegerField(required=False, widget=forms.HiddenInput)
     date = forms.DateField(
         label="Date",
         widget=forms.DateInput(attrs={"type": "date"}),
@@ -77,35 +76,16 @@ class SessionDetailsForm(StyledFormMixin, forms.Form):
             departments = Department.objects.filter(
                 id__in={a.section.department_id for a in assignments}
             )
-            years = sorted({a.section.year for a in assignments})
         else:
             self.assignment_pairs = None
             sections = ClassSection.objects.filter(is_active=True)
             subjects = Subject.objects.all()
             departments = Department.objects.filter(id__in=sections.values("department_id"))
-            years = sorted(set(sections.values_list("year", flat=True)))
 
         self.fields["department"].queryset = departments
         self.fields["section"].queryset = sections.select_related("department")
         self.fields["subject"].queryset = subjects
-        self.fields["year"].choices = [("", "Select year")] + [
-            (year, Year(year).label) for year in years
-        ]
-        self.fields["period"].choices = [("", "Select period")] + [
-            (p, f"Period {p}") for p in range(1, settings.PERIODS_PER_DAY + 1)
-        ]
-        # With 36 sections in the system, "CSE-3B" alone is hard to scan; the
-        # dropdown is filtered to one branch and year anyway, so show the letter.
-        # A teacher who takes more than one year would see "Section A" once per
-        # year before that filtering happens, so name the year in that case.
-        spans_years = len(years) > 1
-        self.fields["section"].label_from_instance = (
-            lambda section: (
-                f"{section.get_section_letter_display()} · {section.get_year_display()}"
-                if spans_years
-                else section.get_section_letter_display()
-            )
-        )
+        self.fields["section"].label_from_instance = lambda section: section.label
 
     def clean_images(self):
         files = self.cleaned_data["images"]
@@ -127,23 +107,14 @@ class SessionDetailsForm(StyledFormMixin, forms.Form):
         cleaned = super().clean()
         section = cleaned.get("section")
         subject = cleaned.get("subject")
-        period = cleaned.get("period")
         date = cleaned.get("date")
         department = cleaned.get("department")
-        year = cleaned.get("year")
 
-        # Branch and year narrow the section list in the browser; re-check them
-        # here so a hand-built POST can't pair a section with the wrong pair.
+        # Re-check the branch even for a hand-built POST.
         if section and department and section.department_id != department.id:
             self.add_error(
                 "section",
                 f"{section.name} isn't a {department.code} section.",
-            )
-        elif section and year and section.year != year:
-            self.add_error(
-                "section",
-                f"{section.name} is a {section.get_year_display()} section, "
-                f"not {Year(year).label}.",
             )
 
         if section and subject:
@@ -156,15 +127,35 @@ class SessionDetailsForm(StyledFormMixin, forms.Form):
                 self.add_error(
                     "subject", f"You aren't assigned to teach {subject.code} to {section.name}."
                 )
-            elif period and date:
+            elif date:
+                slots = TimetableSlot.objects.filter(
+                    teacher=self.teacher, section=section, subject=subject,
+                    weekday=date.weekday(),
+                )
+                selected = cleaned.get("timetable_slot")
+                if selected:
+                    slot = slots.filter(pk=selected).first()
+                    if slot is None:
+                        self.add_error(None, "This timetable entry doesn't match the selected class and date. Choose it again from the timetable.")
+                        return cleaned
+                    period = slot.period
+                else:
+                    matches = list(slots.order_by("period")[:2])
+                    if len(matches) > 1:
+                        self.add_error(None, "This subject has multiple classes on this day. Use the matching entry in your timetable.")
+                        return cleaned
+                    # Unscheduled classes have one record per subject and day.
+                    period = matches[0].period if matches else 1
+                cleaned["period"] = period
                 clash = AttendanceSession.objects.filter(
                     section=section, subject=subject, period=period, date=date
                 ).first()
                 if clash is not None:
                     self.add_error(
-                        "period",
-                        f"Attendance for {section.name} · {subject.code} · period {period} "
-                        f"on {date:%d %b %Y} already exists ({clash.get_status_display()}).",
+                        None,
+                        f"Attendance for {section.name} · {subject.code} "
+                        f"on {date:%d %b %Y} already exists ({clash.get_status_display()}). "
+                        "Open the existing session instead.",
                     )
                     self.clashing_session = clash
         return cleaned

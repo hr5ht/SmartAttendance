@@ -3,11 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070c16">
   <title>{% block title %}{{ institution_name }}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
 </head>
 <body class="{% if user.is_authenticated %}app-shell{% else %}public-shell{% endif %}">
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient__orb ambient__orb--one"></span>
+    <span class="ambient__orb ambient__orb--two"></span>
+    <span class="ambient__grid"></span>
+  </div>
   <a class="skip-link" href="#main">Skip to main content</a>
 
   <header class="site-header">

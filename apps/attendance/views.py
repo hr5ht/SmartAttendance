@@ -97,7 +97,7 @@ def teacher_dashboard(request):
 
 
 def _assignment_map(teacher):
-    """Rows the browser uses to narrow year/section/subject as the branch changes."""
+    """Rows the browser uses to narrow section/subject as the branch changes."""
     if settings.RESTRICT_TEACHER_TO_ASSIGNMENTS:
         return [
             {

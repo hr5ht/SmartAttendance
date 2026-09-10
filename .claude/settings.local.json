@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(.venv/bin/python -m pytest tests/test_pipeline_real_model.py -q)",
-      "Bash(.venv/bin/python -m pytest)"
-    ]
-  }
-}

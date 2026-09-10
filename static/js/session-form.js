@@ -7,10 +7,10 @@
   if (!form) return;
 
   var departmentSelect = form.querySelector("#id_department");
-  var yearSelect = form.querySelector("#id_year");
   var sectionSelect = form.querySelector("#id_section");
   var subjectSelect = form.querySelector("#id_subject");
-  var periodSelect = form.querySelector("#id_period");
+  var slotInput = form.querySelector("#id_timetable_slot");
+  var dateInput = form.querySelector("#id_date");
   var input = form.querySelector('input[type="file"]');
   var dropzone = form.querySelector("[data-dropzone]");
   var thumbs = form.querySelector("[data-thumbs]");
@@ -28,7 +28,6 @@
     });
   }
 
-  var allYears = yearSelect ? snapshot(yearSelect) : [];
   var allSections = sectionSelect ? snapshot(sectionSelect) : [];
   var allSubjects = subjectSelect ? snapshot(subjectSelect) : [];
 
@@ -49,9 +48,7 @@
 
   function idsFor(key, filters) {
     var fields = Object.keys(filters);
-    // Every step above this one must be chosen first. Without that a teacher
-    // who takes two years sees both years' sections at once, and since a
-    // section is labelled by its letter alone they read as duplicate A/B/C.
+    // Require the parent selection before offering dependent choices.
     if (fields.some(function (field) { return !filters[field]; })) return [];
 
     var seen = [];
@@ -64,31 +61,31 @@
     return seen;
   }
 
-  /* Branch -> year -> section -> subject. Each step only offers what the
+  /* Branch -> section -> subject. Each step only offers what the
      teacher is actually assigned to further down the chain. */
   function syncSelects() {
     if (!assignments.length) return;
     var department = Number(departmentSelect.value) || null;
 
-    refill(yearSelect, allYears, idsFor("year", { department: department }));
-    var year = Number(yearSelect.value) || null;
-
     refill(sectionSelect, allSections, idsFor("section", {
-      department: department, year: year
+      department: department
     }));
     var section = Number(sectionSelect.value) || null;
 
     refill(subjectSelect, allSubjects, idsFor("subject", {
-      department: department, year: year, section: section
+      department: department, section: section
     }));
   }
 
-  if (departmentSelect && yearSelect && sectionSelect && subjectSelect) {
+  if (departmentSelect && sectionSelect && subjectSelect) {
     departmentSelect.addEventListener("change", syncSelects);
-    yearSelect.addEventListener("change", syncSelects);
     sectionSelect.addEventListener("change", syncSelects);
     syncSelects();
   }
+
+  [departmentSelect, sectionSelect, subjectSelect, dateInput].forEach(function (field) {
+    if (field) field.addEventListener("change", function () { slotInput.value = ""; });
+  });
 
   /* ------------------------------------------------------------ file picker
      A DataTransfer holds the working list so a file can be removed. */
@@ -201,12 +198,11 @@
     if (!button) return;
     departmentSelect.value = button.getAttribute("data-department");
     syncSelects();
-    yearSelect.value = button.getAttribute("data-year");
-    syncSelects();
     sectionSelect.value = button.getAttribute("data-section");
     syncSelects();
     subjectSelect.value = button.getAttribute("data-subject");
-    periodSelect.value = button.getAttribute("data-period");
+    slotInput.value = button.getAttribute("data-slot");
+    dateInput.value = button.getAttribute("data-date");
     form.scrollIntoView({ behavior: "smooth", block: "start" });
     if (window.showToast) window.showToast("Class details filled in. Add the photos.", "info");
   });

@@ -38,6 +38,8 @@
         <form class="form" method="post" enctype="multipart/form-data" novalidate
               data-session-form>
           {% csrf_token %}
+          {{ form.timetable_slot }}
+          {% if form.timetable_slot.errors %}<div class="form-errors" role="alert">Please choose the class again from your timetable.</div>{% endif %}
 
           {% if form.non_field_errors %}
             <div class="form-errors" role="alert">
@@ -45,14 +47,12 @@
             </div>
           {% endif %}
 
-          <div class="form__row form__row--3">
+          <div class="form__row form__row--2">
             {% include "partials/field.html" with field=form.department %}
-            {% include "partials/field.html" with field=form.year %}
             {% include "partials/field.html" with field=form.section %}
           </div>
-          <div class="form__row form__row--3">
+          <div class="form__row form__row--2">
             {% include "partials/field.html" with field=form.subject %}
-            {% include "partials/field.html" with field=form.period %}
             {% include "partials/field.html" with field=form.date %}
           </div>
 
@@ -182,10 +182,9 @@
                     <button class="btn btn--secondary btn--sm" type="button"
                             data-prefill
                             data-department="{{ slot.section.department_id }}"
-                            data-year="{{ slot.section.year }}"
                             data-section="{{ slot.section_id }}"
                             data-subject="{{ slot.subject_id }}"
-                            data-period="{{ slot.period }}">Use</button>
+                            data-slot="{{ slot.pk }}" data-date="{{ day|date:'Y-m-d' }}">Use</button>
                   {% endif %}
                 </div>
               </li>

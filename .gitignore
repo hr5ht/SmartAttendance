@@ -19,14 +19,7 @@ db.sqlite3-*
 # Local tools and operating-system metadata
 .DS_Store
 
-# Tests and test cache: excluded from GitHub at the project owner's request
-/tests/
-/pytest.ini
+# Test cache
 .pytest_cache/
-
-# Development-only data generators
-/apps/academics/management/commands/seed_demo.py
-/apps/academics/management/commands/seed_teacher_timetable.py
-/apps/face/management/commands/seed_face_enrollments.py
 
 # Git's own metadata is never tracked and needs no ignore rule.

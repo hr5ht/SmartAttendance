@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-head">
   <div class="page-head__text">
-    <h1>{{ session.section.name }} · {{ session.subject.short_label }}</h1>
+    <h1>{{ session.section.name }} · {{ session.subject.name }}</h1>
     <p class="page-head__sub">
       Period {{ session.period }} · {{ session.date|date:"l, d F Y" }} ·
       {{ session.teacher.name }}

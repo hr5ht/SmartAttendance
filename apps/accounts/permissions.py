@@ -27,19 +27,3 @@ admin_required = _role_required(lambda u: u.is_admin_role)
 teacher_required = _role_required(lambda u: u.is_teacher_role or u.is_admin_role)
 student_required = _role_required(lambda u: u.is_student_role)
 
-
-class RoleRequiredMixin:
-    """Class-based-view counterpart to the decorators above."""
-
-    allowed_roles: tuple[str, ...] = ()
-    allow_admin = True
-
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if not user.is_authenticated:
-            return redirect_to_login(request.get_full_path())
-        if self.allow_admin and user.is_admin_role:
-            return super().dispatch(request, *args, **kwargs)
-        if self.allowed_roles and user.role not in self.allowed_roles:
-            raise PermissionDenied("Your role does not have access to this page.")
-        return super().dispatch(request, *args, **kwargs)

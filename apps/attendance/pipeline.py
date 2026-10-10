@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image
 
 from apps.attendance.models import (
     AttendanceRecord,
@@ -66,22 +66,20 @@ class PipelineReport:
 
 def _decode(session_image) -> np.ndarray:
     """Read a stored session photo back as a BGR array."""
+    # Stored photos went through imaging.normalise: upright RGB JPEG, no EXIF.
     try:
         with session_image.image.open("rb") as handle:
             data = handle.read()
-        picture = Image.open(io.BytesIO(data))
-        picture.load()
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
+    except OSError:
+        data = b""
+    picture = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if picture is None:
         raise PipelineError(
             f"Photo {session_image.order + 1} could not be read — it may have been "
             f"corrupted during upload. Remove it and upload the photo again.",
             code="UNREADABLE",
-        ) from exc
-
-    picture = ImageOps.exif_transpose(picture)
-    if picture.mode != "RGB":
-        picture = picture.convert("RGB")
-    return cv2.cvtColor(np.asarray(picture), cv2.COLOR_RGB2BGR)
+        )
+    return picture
 
 
 def _save_crop(face: DetectedFace, image_bgr: np.ndarray, bbox) -> None:
@@ -160,19 +158,13 @@ def process_session(session) -> PipelineReport:
         try:
             picture = _decode(session_image)
             detections = engine.detect(picture)
-        except PipelineError as exc:
+        except (PipelineError, FaceEngineError) as exc:
             # One bad photo must not sink the session.
             session_image.status = ImageStatus.FAILED
-            session_image.error_message = exc.message
-            session_image.elapsed_seconds = time.perf_counter() - image_started
-            session_image.save(
-                update_fields=["status", "error_message", "elapsed_seconds"]
+            session_image.error_message = (
+                exc.message if isinstance(exc, PipelineError)
+                else f"The face detector failed on this photo: {exc}"
             )
-            report.failed_images.append(exc.message)
-            continue
-        except FaceEngineError as exc:
-            session_image.status = ImageStatus.FAILED
-            session_image.error_message = f"The face detector failed on this photo: {exc}"
             session_image.elapsed_seconds = time.perf_counter() - image_started
             session_image.save(
                 update_fields=["status", "error_message", "elapsed_seconds"]

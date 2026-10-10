@@ -138,26 +138,26 @@ def my_attendance(request):
     if student is None:
         return render(request, "reports/student.html", {"student": None})
 
+    confirmed = AttendanceRecord.objects.filter(
+        student=student, session__status=SessionStatus.CONFIRMED
+    )
     records = list(
-        AttendanceRecord.objects.filter(
-            student=student, session__status=SessionStatus.CONFIRMED
-        )
-        .select_related("session__subject", "session__section", "session__teacher__user")
-        .order_by("-session__date", "-session__period")
+        confirmed.select_related(
+            "session__subject", "session__section", "session__teacher__user"
+        ).order_by("-session__date", "-session__period")
     )
     held = len(records)
     present = sum(1 for record in records if record.status == AttendanceStatus.PRESENT)
 
     # Per subject, so a student can see which class they are behind in.
-    by_subject: dict[int, dict] = {}
-    for record in records:
-        subject = record.session.subject
-        entry = by_subject.setdefault(
-            subject.pk, {"subject": subject, "held": 0, "present": 0}
+    subjects = list(
+        confirmed.values("session__subject__code", "session__subject__name")
+        .annotate(
+            held=Count("id"),
+            present=Count("id", filter=Q(status=AttendanceStatus.PRESENT)),
         )
-        entry["held"] += 1
-        entry["present"] += 1 if record.status == AttendanceStatus.PRESENT else 0
-    subjects = sorted(by_subject.values(), key=lambda entry: entry["subject"].code)
+        .order_by("session__subject__code")
+    )
     for entry in subjects:
         entry["percentage"] = _percentage(entry["present"], entry["held"])
         entry["is_low"] = entry["percentage"] < settings.LOW_ATTENDANCE_PERCENT

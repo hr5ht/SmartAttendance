@@ -86,8 +86,7 @@
   // Auto-run on arrival when there are unprocessed photos.
   if (!card.hidden) run();
 
-  Array.prototype.forEach.call(
-    document.querySelectorAll("[data-reprocess]"),
-    function (button) { button.addEventListener("click", run); }
-  );
+  document.querySelectorAll("[data-reprocess]").forEach(function (button) {
+    button.addEventListener("click", run);
+  });
 })();

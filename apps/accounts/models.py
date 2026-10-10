@@ -40,7 +40,6 @@ class User(AbstractUser):
         help_text="When true the user is redirected to the password change page.",
     )
     password_changed_at = models.DateTimeField(null=True, blank=True)
-    phone = models.CharField(max_length=20, blank=True)
 
     objects = UserManager()
 

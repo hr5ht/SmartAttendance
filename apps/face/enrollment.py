@@ -149,6 +149,14 @@ def check_quality(detection: Detection, image_bgr: np.ndarray) -> CaptureResult 
     return None
 
 
+def _best(vector: np.ndarray, rows):
+    """The stored row most similar to ``vector``, and its score."""
+    gallery = np.stack([emb.from_bytes(row.embedding) for row in rows])
+    scores = emb.cosine_similarity_matrix(vector[None, :], gallery)[0]
+    best = int(np.argmax(scores))
+    return rows[best], float(scores[best])
+
+
 def check_not_duplicate(student: Student, vector: np.ndarray, exclude_step: int | None):
     """Reject a frame that is all but identical to one already stored."""
     existing = student.face_enrollments.all()
@@ -158,17 +166,14 @@ def check_not_duplicate(student: Student, vector: np.ndarray, exclude_step: int 
     if not rows:
         return None
 
-    gallery = np.stack([emb.from_bytes(row.embedding) for row in rows])
-    scores = emb.cosine_similarity_matrix(vector[None, :], gallery)[0]
-    best = int(np.argmax(scores))
-    if float(scores[best]) > settings.DUPLICATE_EMBEDDING_THRESHOLD:
-        matched = rows[best]
+    matched, score = _best(vector, rows)
+    if score > settings.DUPLICATE_EMBEDDING_THRESHOLD:
         return _reject(
             "DUPLICATE",
             "That's the same shot you already submitted for "
             f"“{matched.get_pose_display().lower()}”. Change your angle or your "
             "surroundings so this capture adds something new.",
-            similarity=round(float(scores[best]), 3),
+            similarity=round(score, 3),
             duplicate_of_step=matched.step_index,
         )
     return None
@@ -189,12 +194,9 @@ def check_not_another_student(student: Student, vector: np.ndarray):
     if not rows:
         return None
 
-    gallery = np.stack([emb.from_bytes(row.embedding) for row in rows])
-    scores = emb.cosine_similarity_matrix(vector[None, :], gallery)[0]
-    best = int(np.argmax(scores))
-    score = float(scores[best])
+    matched, score = _best(vector, rows)
     if score >= settings.SIMILARITY_THRESHOLD:
-        other = rows[best].student
+        other = matched.student
         return _reject(
             "MATCHES_OTHER_STUDENT",
             "This face is already enrolled under a different student in your "

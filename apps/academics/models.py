@@ -62,13 +62,8 @@ class ClassSection(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.name = self.build_name(self.department, self.year, self.section_letter)
+        self.name = f"{self.department.code}-{self.year}{self.section_letter}"
         super().save(*args, **kwargs)
-
-    @staticmethod
-    def build_name(department, year, section_letter) -> str:
-        code = department.code if hasattr(department, "code") else department
-        return f"{code}-{year}{section_letter}"
 
     @property
     def label(self) -> str:
@@ -89,10 +84,6 @@ class Subject(models.Model):
 
     def __str__(self) -> str:
         return f"{self.code} — {self.name}"
-
-    @property
-    def short_label(self) -> str:
-        return self.name
 
 
 class Teacher(models.Model):

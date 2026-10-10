@@ -25,10 +25,6 @@ def load_dotenv(path: Path | None = None) -> None:
         os.environ.setdefault(key, value)
 
 
-def env_str(name: str, default: str = "") -> str:
-    return os.environ.get(name, default)
-
-
 def env_bool(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:

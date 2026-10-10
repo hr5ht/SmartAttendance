@@ -17,19 +17,8 @@ class Command(BaseCommand):
             f"(first run downloads ~280 MB)…"
         )
         try:
-            # FaceAnalysis downloads the pack itself when the directory is absent,
-            # so bypass our own missing-files guard for the initial fetch.
-            import insightface
-
-            app = insightface.app.FaceAnalysis(
-                name=settings.FACE_MODEL_NAME,
-                root=settings.FACE_MODEL_ROOT,
-                providers=list(settings.FACE_MODEL_PROVIDERS),
-                allowed_modules=["detection", "recognition"],
-            )
-            app.prepare(ctx_id=-1, det_size=(settings.FACE_DET_SIZE, settings.FACE_DET_SIZE))
+            # FaceAnalysis downloads the pack itself when the directory is absent.
+            engine.preload(download=True)
         except Exception as exc:  # noqa: BLE001 — surfaced verbatim to the operator
             raise CommandError(f"Could not prepare the face models: {exc}") from exc
-
-        engine.preload()
         self.stdout.write(self.style.SUCCESS(f"Ready: {engine.model_dir}"))

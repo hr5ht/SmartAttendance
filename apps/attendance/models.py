@@ -101,16 +101,16 @@ class AttendanceSession(models.Model):
     @property
     def subject_line(self) -> str:
         return (
-            f"Attendance — {self.section.name} / {self.subject.short_label} / "
+            f"Attendance — {self.section.name} / {self.subject.name} / "
             f"Period {self.period} / {self.date:%d-%b-%Y}"
         )
 
     # -- roster helpers ---------------------------------------------------
     def roster(self):
-        return Student.objects.active().for_section(self.section)
+        return Student.objects.active().filter(section=self.section)
 
     def enrolled_roster(self):
-        return Student.objects.enrolled().for_section(self.section)
+        return Student.objects.enrolled().filter(section=self.section)
 
     def unenrolled_roster(self):
         return self.roster().filter(face_enrolled=False)
@@ -125,7 +125,6 @@ class AttendanceSession(models.Model):
             "present": present,
             "absent": total - present,
             "manual": manual,
-            "auto": present - manual if present >= manual else 0,
             "percentage": round(100 * present / total, 1) if total else 0.0,
         }
 
@@ -153,10 +152,6 @@ class SessionImage(models.Model):
 
     def __str__(self) -> str:
         return f"Image {self.order + 1} of session {self.session_id}"
-
-    @property
-    def is_failed(self) -> bool:
-        return self.status == ImageStatus.FAILED
 
 
 class DetectedFace(EmbeddingMixin):
@@ -196,18 +191,6 @@ class DetectedFace(EmbeddingMixin):
     def __str__(self) -> str:
         who = self.matched_student.name if self.matched_student else "UNKNOWN"
         return f"Face #{self.pk} → {who}"
-
-    @property
-    def is_unknown(self) -> bool:
-        return self.matched_student_id is None
-
-    @property
-    def bbox(self) -> tuple[float, float, float, float]:
-        return (self.bbox_x1, self.bbox_y1, self.bbox_x2, self.bbox_y2)
-
-    @property
-    def width(self) -> float:
-        return self.bbox_x2 - self.bbox_x1
 
     @property
     def confidence_percent(self) -> int:

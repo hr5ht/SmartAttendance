@@ -8,9 +8,7 @@
 .progress__bar { display: flex; gap: var(--s-1); }
 .progress__tick {
   flex: 1; height: 6px; border-radius: var(--r-pill);
-  background: var(--c-border);
 }
-.progress__tick.is-done { background: var(--c-present); }
 .progress__label {
   margin: var(--s-2) 0 0;
   font-size: var(--fs-sm); color: var(--c-ink-60); font-weight: 550;
@@ -21,7 +19,6 @@
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  background: #14140f;
   border-radius: var(--r-md);
   overflow: hidden;
   margin-bottom: var(--s-4);
@@ -53,17 +50,10 @@
 /* ---------- fallback ---------- */
 .fallback { margin-bottom: var(--s-4); }
 .fallback__note {
-  font-size: var(--fs-sm); color: var(--c-pending);
-  background: var(--c-pending-soft);
+  font-size: var(--fs-sm);
   border: 1px solid #ecd6a6; border-radius: var(--r-md);
   padding: var(--s-3); margin: 0 0 var(--s-3); max-width: none;
 }
-/* Before we know whether the camera works, this is information, not a warning. */
-.fallback__note--neutral {
-  color: var(--c-ink-60); background: var(--c-surface-alt);
-  border-color: var(--c-border);
-}
-
 /* ---------- actions: big thumb targets ---------- */
 .capture-actions { display: grid; gap: var(--s-3); }
 .capture-actions .btn { min-height: 52px; font-size: var(--fs-base); }
@@ -76,17 +66,17 @@
   padding: var(--s-3); border-radius: var(--r-md); max-width: none;
   margin-bottom: var(--s-3);
 }
-.capture-msg--error   { background: var(--c-absent-soft);  color: var(--c-absent);  border: 1px solid #efc4c1; }
-.capture-msg--success { background: var(--c-present-soft); color: var(--c-present); border: 1px solid #bfe0cd; }
-.capture-msg--info    { background: var(--c-accent-soft);  color: var(--c-accent-dark); border: 1px solid #c8d3fb; }
+.capture-msg--error   {  border: 1px solid #efc4c1; }
+.capture-msg--success { border: 1px solid #bfe0cd; }
+.capture-msg--info    { border: 1px solid #c8d3fb; }
 
 /* ---------- tips ---------- */
 .tips { margin-top: var(--s-4); font-size: var(--fs-sm); }
 .tips summary {
-  cursor: pointer; color: var(--c-accent-dark); font-weight: 600;
+  cursor: pointer; font-weight: 600;
   padding: var(--s-2) 0; min-height: var(--tap); display: flex; align-items: center;
 }
-.tips ul { margin: 0 0 0 var(--s-4); padding: 0; color: var(--c-ink-60); }
+.tips ul { margin: 0 0 0 var(--s-4); padding: 0; }
 .tips li { margin-bottom: var(--s-1); }
 
 /* ---------- the five steps ---------- */
@@ -97,15 +87,9 @@
   border-bottom: 1px solid var(--c-border);
 }
 .steplist__item:last-child { border-bottom: 0; }
-.steplist__item.is-done { background: var(--c-present-soft); }
 .steplist__num {
   flex: none; width: 26px; height: 26px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--c-surface-alt); border: 1px solid var(--c-border);
-  color: var(--c-ink-60); font-size: var(--fs-xs); font-weight: 650;
-}
-.steplist__item.is-done .steplist__num {
-  background: var(--c-present); border-color: var(--c-present); color: #fff;
+  display: grid; place-items: center; border: 1px solid var(--c-border); font-size: var(--fs-xs); font-weight: 650;
 }
 .steplist__text { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .steplist__state { flex: none; margin-left: auto; }

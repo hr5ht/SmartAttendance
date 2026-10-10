@@ -15,9 +15,6 @@ class StudentQuerySet(models.QuerySet):
         """Students whose face gallery is complete — the matcher's candidates."""
         return self.filter(is_active=True, face_enrolled=True)
 
-    def for_section(self, section):
-        return self.filter(section=section)
-
 
 class Student(models.Model):
     user = models.OneToOneField(

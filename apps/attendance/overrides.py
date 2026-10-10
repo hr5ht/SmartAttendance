@@ -42,6 +42,26 @@ def _roster_student(session, student_id: int) -> Student:
     return student
 
 
+def _mark_manual(session, student, status, face, user, reason) -> AttendanceRecord:
+    """Write a teacher's decision onto the student's record, creating it if needed."""
+    record, _ = AttendanceRecord.objects.get_or_create(
+        session=session, student=student, defaults={"status": AttendanceStatus.ABSENT}
+    )
+    record.status = status
+    record.source = RecordSource.MANUAL
+    record.confidence = None
+    record.matched_face = face
+    record.overridden_by = user
+    record.override_reason = reason
+    record.save(
+        update_fields=[
+            "status", "source", "confidence", "matched_face",
+            "overridden_by", "override_reason", "updated_at",
+        ]
+    )
+    return record
+
+
 @transaction.atomic
 def set_record_status(session, student_id: int, status: str, user, reason: str = ""):
     """Mark one student present or absent by hand.
@@ -55,20 +75,8 @@ def set_record_status(session, student_id: int, status: str, user, reason: str =
         raise OverrideError("That isn't a valid attendance status.")
     student = _roster_student(session, student_id)
 
-    record, _ = AttendanceRecord.objects.get_or_create(
-        session=session, student=student, defaults={"status": AttendanceStatus.ABSENT}
-    )
-    record.status = status
-    record.source = RecordSource.MANUAL
-    record.confidence = None
-    record.matched_face = None
-    record.overridden_by = user
-    record.override_reason = (reason or "").strip()[:200]
-    record.save(
-        update_fields=[
-            "status", "source", "confidence", "matched_face",
-            "overridden_by", "override_reason", "updated_at",
-        ]
+    record = _mark_manual(
+        session, student, status, None, user, (reason or "").strip()[:200]
     )
     logger.info(
         "session %s: %s set %s to %s by hand",
@@ -98,20 +106,9 @@ def assign_face(session, face_id: int, student_id: int, user):
     face.reject_reason = ""
     face.save(update_fields=["matched_student", "assigned_manually", "reject_reason"])
 
-    record, _ = AttendanceRecord.objects.get_or_create(
-        session=session, student=student, defaults={"status": AttendanceStatus.ABSENT}
-    )
-    record.status = AttendanceStatus.PRESENT
-    record.source = RecordSource.MANUAL
-    record.confidence = None
-    record.matched_face = face
-    record.overridden_by = user
-    record.override_reason = f"Assigned face #{face.pk} by hand"
-    record.save(
-        update_fields=[
-            "status", "source", "confidence", "matched_face",
-            "overridden_by", "override_reason", "updated_at",
-        ]
+    _mark_manual(
+        session, student, AttendanceStatus.PRESENT, face, user,
+        f"Assigned face #{face.pk} by hand",
     )
     logger.info(
         "session %s: %s assigned face %s to %s",

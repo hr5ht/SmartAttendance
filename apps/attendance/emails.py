@@ -20,14 +20,8 @@ logger = logging.getLogger("apps.attendance")
 
 def recipients(session) -> list[str]:
     """The teacher who took the class, then the standing CC list."""
-    addresses = []
     teacher_email = (session.teacher.email or "").strip()
-    if teacher_email:
-        addresses.append(teacher_email)
-    for address in settings.ATTENDANCE_EMAIL_CC:
-        if address not in addresses:
-            addresses.append(address)
-    return addresses
+    return list(dict.fromkeys(filter(None, [teacher_email, *settings.ATTENDANCE_EMAIL_CC])))
 
 
 def _roll(records) -> str:

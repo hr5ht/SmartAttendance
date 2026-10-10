@@ -1,13 +1,12 @@
 """Face detection and embedding, behind a swappable interface.
 
-Nothing outside this module imports insightface. To swap the model, implement
-``FaceEngine`` and point ``get_engine`` at it.
+Nothing outside this module imports insightface. To swap the model, write a
+class with ``detect`` and ``preload`` and point ``get_engine`` at it.
 """
 from __future__ import annotations
 
 import logging
 import threading
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,7 +31,6 @@ class Detection:
     bbox: tuple[float, float, float, float]
     det_score: float
     embedding: np.ndarray          # 512-d, unit length
-    keypoints: np.ndarray | None = None
 
     @property
     def width(self) -> float:
@@ -43,19 +41,7 @@ class Detection:
         return self.bbox[3] - self.bbox[1]
 
 
-class FaceEngine(ABC):
-    """The only surface the rest of the app is allowed to depend on."""
-
-    @abstractmethod
-    def detect(self, image_bgr: np.ndarray) -> list[Detection]:
-        """Return every face found, largest first."""
-
-    @abstractmethod
-    def preload(self) -> None:
-        """Load the model now rather than on first use."""
-
-
-class InsightFaceEngine(FaceEngine):
+class InsightFaceEngine:
     """SCRFD detection + ArcFace embeddings (buffalo_l) on CPU via onnxruntime."""
 
     def __init__(self, name=None, root=None, det_size=None, providers=None):
@@ -71,14 +57,17 @@ class InsightFaceEngine(FaceEngine):
         # insightface nests its downloads under <root>/models/<name>.
         return Path(self.root) / "models" / self.name
 
-    def _ensure_loaded(self):
-        """Load once, under a lock — requests are served by several threads."""
+    def _ensure_loaded(self, download: bool = False):
+        """Load once, under a lock — requests are served by several threads.
+
+        ``download`` lets FaceAnalysis fetch a missing pack instead of refusing.
+        """
         if self._app is not None:
             return self._app
         with self._lock:
             if self._app is not None:
                 return self._app
-            if not self.model_dir.is_dir() or not any(self.model_dir.glob("*.onnx")):
+            if not download and not any(self.model_dir.glob("*.onnx")):
                 raise ModelFilesMissing(
                     f"Face recognition models are not installed. Expected "
                     f"'{self.name}' in {self.model_dir}. Run "
@@ -101,10 +90,12 @@ class InsightFaceEngine(FaceEngine):
             self._app = app
         return self._app
 
-    def preload(self) -> None:
-        self._ensure_loaded()
+    def preload(self, download: bool = False) -> None:
+        """Load the model now rather than on first use."""
+        self._ensure_loaded(download)
 
     def detect(self, image_bgr: np.ndarray) -> list[Detection]:
+        """Return every face found, largest first."""
         app = self._ensure_loaded()
         faces = app.get(image_bgr)
         detections = [
@@ -113,10 +104,6 @@ class InsightFaceEngine(FaceEngine):
                 det_score=float(face.det_score),
                 # normed_embedding is already unit length; copy it off the model's buffer.
                 embedding=np.asarray(face.normed_embedding, dtype=np.float32).copy(),
-                keypoints=(
-                    np.asarray(face.kps, dtype=np.float32).copy()
-                    if getattr(face, "kps", None) is not None else None
-                ),
             )
             for face in faces
         ]
@@ -124,11 +111,11 @@ class InsightFaceEngine(FaceEngine):
         return detections
 
 
-_engine: FaceEngine | None = None
+_engine: InsightFaceEngine | None = None
 _engine_lock = threading.Lock()
 
 
-def get_engine() -> FaceEngine:
+def get_engine() -> InsightFaceEngine:
     """Process-wide engine. Loading the ONNX graphs takes seconds, so reuse it."""
     global _engine
     if _engine is None:
@@ -138,7 +125,7 @@ def get_engine() -> FaceEngine:
     return _engine
 
 
-def set_engine(engine: FaceEngine | None) -> None:
+def set_engine(engine) -> None:
     """Swap the engine — used by tests to avoid loading the real model."""
     global _engine
     _engine = engine

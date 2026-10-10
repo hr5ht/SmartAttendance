@@ -16,11 +16,8 @@ def to_bytes(vector: np.ndarray) -> bytes:
     return normalize(array).tobytes()
 
 
-def from_bytes(blob: bytes | memoryview, dim: int | None = None) -> np.ndarray:
-    array = np.frombuffer(bytes(blob), dtype=DTYPE)
-    if dim is not None and array.size != dim:
-        raise ValueError(f"expected {dim}-d embedding, got {array.size}")
-    return array
+def from_bytes(blob: bytes | memoryview) -> np.ndarray:
+    return np.frombuffer(bytes(blob), dtype=DTYPE)
 
 
 def normalize(vector: np.ndarray) -> np.ndarray:

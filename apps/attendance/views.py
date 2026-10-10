@@ -231,7 +231,6 @@ def process_session_view(request, pk):
         logger.warning("session %s could not be processed: %s", session.pk, exc.message)
         return JsonResponse({"ok": False, "code": exc.code, "message": exc.message})
 
-    counts = session.counts()
     return JsonResponse(
         {
             "ok": True,
@@ -239,17 +238,6 @@ def process_session_view(request, pk):
                 f"Found {report.faces_detected} faces and recognised "
                 f"{report.faces_matched} of them."
             ),
-            "report": {
-                "images": report.images,
-                "faces_detected": report.faces_detected,
-                "faces_matched": report.faces_matched,
-                "faces_unknown": report.faces_unknown,
-                "skipped_too_small": report.skipped_too_small,
-                "present": counts["present"],
-                "absent": counts["absent"],
-                "elapsed_seconds": round(report.elapsed_seconds, 2),
-                "failed_images": report.failed_images,
-            },
         }
     )
 
@@ -268,19 +256,8 @@ def session_status(request, pk):
     return JsonResponse(
         {
             "total": len(images),
-            "done": done,
             "current": current,
             "finished": done == len(images) and bool(images),
-            "images": [
-                {
-                    "order": image.order + 1,
-                    "status": image.status,
-                    "faces_detected": image.faces_detected,
-                    "faces_matched": image.faces_matched,
-                    "error": image.error_message,
-                }
-                for image in images
-            ],
         }
     )
 

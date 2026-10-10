@@ -62,8 +62,8 @@
             {% for entry in subjects %}
               <tr>
                 <th scope="row">
-                  {{ entry.subject.name }}
-                  <span class="mono xsmall">{{ entry.subject.code }}</span>
+                  {{ entry.session__subject__name }}
+                  <span class="mono xsmall">{{ entry.session__subject__code }}</span>
                 </th>
                 <td class="num tabular">{{ entry.held }}</td>
                 <td class="num tabular">{{ entry.present }}</td>
@@ -102,7 +102,7 @@
             {% for record in records %}
               <tr>
                 <td class="nowrap">{{ record.session.date|date:"d M Y" }}</td>
-                <td>{{ record.session.subject.short_label }}</td>
+                <td>{{ record.session.subject.name }}</td>
                 <td class="num tabular">{{ record.session.period }}</td>
                 <td>
                   {% if record.is_present %}

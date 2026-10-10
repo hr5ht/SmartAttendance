@@ -5,10 +5,10 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.shortcuts import redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 
 from apps.academics.models import ClassSection
-from apps.accounts.forms import ForcePasswordChangeForm, LoginForm
+from apps.accounts.forms import ForcePasswordChangeForm
 from apps.accounts.permissions import admin_required, student_required
 from apps.attendance.models import AttendanceSession
 from apps.students.models import EnrollmentResetRequest, ResetRequestStatus, Student
@@ -18,19 +18,6 @@ def home(request):
     if request.user.is_authenticated:
         return redirect("accounts:post_login")
     return redirect("accounts:login")
-
-
-class LoginView(auth_views.LoginView):
-    template_name = "accounts/login.html"
-    authentication_form = LoginForm
-    redirect_authenticated_user = True
-
-    def get_success_url(self):
-        return self.get_redirect_url() or reverse("accounts:post_login")
-
-
-class LogoutView(auth_views.LogoutView):
-    next_page = reverse_lazy("accounts:login")
 
 
 @login_required

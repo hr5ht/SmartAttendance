@@ -10,7 +10,7 @@ class UserAdmin(DjangoUserAdmin):
     list_filter = ("role", "must_change_password", "is_active", "is_staff")
     search_fields = ("username", "first_name", "last_name", "email")
     fieldsets = DjangoUserAdmin.fieldsets + (
-        ("Role", {"fields": ("role", "must_change_password", "password_changed_at", "phone")}),
+        ("Role", {"fields": ("role", "must_change_password", "password_changed_at")}),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         ("Role", {"fields": ("role", "email", "first_name", "last_name")}),

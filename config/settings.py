@@ -5,9 +5,10 @@ and SMTP credentials can be changed without touching code.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from .env import env_bool, env_float, env_int, env_list, env_str, load_dotenv
+from .env import env_bool, env_float, env_int, env_list, load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,7 +17,7 @@ load_dotenv(BASE_DIR / ".env")
 # --------------------------------------------------------------------------
 # Core
 # --------------------------------------------------------------------------
-SECRET_KEY = env_str("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["*"] if DEBUG else [])
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
@@ -74,7 +75,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": env_str("DJANGO_DB_PATH", str(BASE_DIR / "db.sqlite3")),
+        "NAME": os.environ.get("DJANGO_DB_PATH", str(BASE_DIR / "db.sqlite3")),
         "OPTIONS": {"timeout": 30},
     }
 }
@@ -97,8 +98,8 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 SESSION_COOKIE_AGE = env_int("SESSION_COOKIE_AGE", 60 * 60 * 12)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", False)
 
-LANGUAGE_CODE = env_str("DJANGO_LANGUAGE_CODE", "en-us")
-TIME_ZONE = env_str("DJANGO_TIME_ZONE", "Asia/Kolkata")
+LANGUAGE_CODE = os.environ.get("DJANGO_LANGUAGE_CODE", "en-us")
+TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "Asia/Kolkata")
 USE_I18N = True
 USE_TZ = True
 
@@ -107,17 +108,16 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = Path(env_str("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media")))
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media")))
 
 # --------------------------------------------------------------------------
 # Face recognition pipeline
 # --------------------------------------------------------------------------
 # Model
-FACE_MODEL_NAME = env_str("FACE_MODEL_NAME", "buffalo_l")
-FACE_MODEL_ROOT = env_str("FACE_MODEL_ROOT", str(BASE_DIR / "models"))
+FACE_MODEL_NAME = os.environ.get("FACE_MODEL_NAME", "buffalo_l")
+FACE_MODEL_ROOT = os.environ.get("FACE_MODEL_ROOT", str(BASE_DIR / "models"))
 FACE_MODEL_PROVIDERS = env_list("FACE_MODEL_PROVIDERS", ["CPUExecutionProvider"])
 FACE_DET_SIZE = env_int("FACE_DET_SIZE", 640)
-FACE_EMBEDDING_DIM = env_int("FACE_EMBEDDING_DIM", 512)
 
 # Matching thresholds — nothing in the matcher is magic-numbered.
 SIMILARITY_THRESHOLD = env_float("SIMILARITY_THRESHOLD", 0.45)
@@ -126,7 +126,7 @@ MIN_DETECTION_SCORE = env_float("MIN_DETECTION_SCORE", 0.50)
 MIN_FACE_PIXELS = env_int("MIN_FACE_PIXELS", 40)
 
 # Enrollment quality gates
-ENROLLMENT_STEPS = env_int("ENROLLMENT_STEPS", 5)
+ENROLLMENT_STEPS = 5  # one per pose in apps.face.enrollment.CAPTURE_STEPS
 MIN_ENROLL_FACE_PIXELS = env_int("MIN_ENROLL_FACE_PIXELS", 120)
 MIN_ENROLL_DET_SCORE = env_float("MIN_ENROLL_DET_SCORE", 0.65)
 MIN_ENROLL_BLUR_VARIANCE = env_float("MIN_ENROLL_BLUR_VARIANCE", 45.0)
@@ -164,28 +164,28 @@ LOW_ATTENDANCE_PERCENT = env_float("LOW_ATTENDANCE_PERCENT", 75.0)
 # --------------------------------------------------------------------------
 # Email
 # --------------------------------------------------------------------------
-EMAIL_BACKEND = env_str(
+EMAIL_BACKEND = os.environ.get(
     "DJANGO_EMAIL_BACKEND",
     "django.core.mail.backends.console.EmailBackend" if DEBUG
     else "django.core.mail.backends.smtp.EmailBackend",
 )
-EMAIL_HOST = env_str("EMAIL_HOST", "localhost")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
 EMAIL_PORT = env_int("EMAIL_PORT", 587)
-EMAIL_HOST_USER = env_str("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = env_str("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = env_int("EMAIL_TIMEOUT", 20)
-DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", "Smart Attendance <no-reply@example.edu>")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Smart Attendance <no-reply@example.edu>")
 ATTENDANCE_EMAIL_CC = env_list("ATTENDANCE_EMAIL_CC", [])
-INSTITUTION_NAME = env_str("INSTITUTION_NAME", "Smart Attendance")
+INSTITUTION_NAME = os.environ.get("INSTITUTION_NAME", "Smart Attendance")
 
 # --------------------------------------------------------------------------
 # Logging — the pipeline logs image/face/match counts and elapsed seconds.
 # --------------------------------------------------------------------------
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
-LOG_LEVEL = env_str("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 LOGGING = {
     "version": 1,

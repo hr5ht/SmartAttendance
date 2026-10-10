@@ -96,9 +96,8 @@ def student_create(request):
             username=username,
             role=Role.STUDENT,
             email=student.email or "",
-            first_name=student.name.split()[0],
-            last_name=" ".join(student.name.split()[1:]),
         )
+        user.first_name, _, user.last_name = student.name.partition(" ")
         user.set_initial_password(password)
         user.save()
 
@@ -125,8 +124,7 @@ def student_edit(request, pk):
         student = form.save()
         user = student.user
         user.email = student.email or ""
-        user.first_name = student.name.split()[0]
-        user.last_name = " ".join(student.name.split()[1:])
+        user.first_name, _, user.last_name = student.name.partition(" ")
         user.save(update_fields=["email", "first_name", "last_name"])
         messages.success(request, f"Updated {student.name}.")
         return redirect("students:list")

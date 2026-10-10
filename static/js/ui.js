@@ -17,7 +17,7 @@
   var region = document.querySelector("[data-flash-region]");
 
   function dismiss(toast) {
-    if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+    if (toast) toast.remove();
   }
 
   document.addEventListener("click", function (event) {
@@ -25,7 +25,7 @@
     if (closer) dismiss(closer.closest(".toast"));
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll(".toast"), function (toast) {
+  document.querySelectorAll(".toast").forEach(function (toast) {
     if (toast.classList.contains("toast--error")) return; // errors stay until dismissed
     window.setTimeout(function () { dismiss(toast); }, 6000);
   });
@@ -124,7 +124,7 @@
   });
 
   /* -- mark the current nav link ---------------------------------------- */
-  Array.prototype.forEach.call(document.querySelectorAll(".nav a"), function (link) {
+  document.querySelectorAll(".nav a").forEach(function (link) {
     if (link.pathname === window.location.pathname ||
         (link.pathname !== "/" && window.location.pathname.indexOf(link.pathname) === 0)) {
       link.classList.add("is-active");
